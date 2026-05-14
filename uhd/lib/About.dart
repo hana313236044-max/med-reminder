@@ -1,4 +1,3 @@
- 
 import 'dart:async';
 import 'package:flutter/material.dart';
 
@@ -58,7 +57,6 @@ class _AboutPageState extends State<AboutPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-
             /// ===== AUTO IMAGE SLIDER =====
             Center(
               child: ConstrainedBox(
@@ -139,8 +137,7 @@ class _AboutPageState extends State<AboutPage> {
     );
   }
 
- 
-// helper method for cards
+  // helper method for cards
   static Widget _infoCard({
     required String title,
     required IconData icon,
@@ -149,9 +146,7 @@ class _AboutPageState extends State<AboutPage> {
     return Card(
       elevation: 4,
       margin: const EdgeInsets.only(bottom: 16),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(14),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -159,7 +154,7 @@ class _AboutPageState extends State<AboutPage> {
           children: [
             Row(
               children: [
-                Icon(icon, color: const Color.fromARGB( 255, 72, 202, 246)),
+                Icon(icon, color: const Color.fromARGB(255, 72, 202, 246)),
                 const SizedBox(width: 8),
                 Text(
                   title,
