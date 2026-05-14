@@ -9,7 +9,7 @@ class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
   static final List<Map<String, String>> users = [
-    {"username": "Hana", "password": "Hana123!", "email": "hana@gmail.com"},
+    {"username": "Hana", "password": "Zhyar2004@", "email": "hana@gmail.com"},
     {"username": "Sarina", "password": "Sarina12!", "email": "sarin@gmail.com"},
     {"username": "Lare", "password": "Lare123!", "email": "lare@gmail.com"},
   ];
@@ -87,8 +87,8 @@ class _LoginScreenState extends State<LoginScreen>
     if (value.isEmpty) {
       return "Name is required";
     }
-    if (value.length <= 3) {
-      return "Name must be more than 3 letters";
+    if (value.length <= 2) {
+      return "Name must be more than 2 characters";
     }
     return null;
   }

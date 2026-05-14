@@ -1,46 +1,17 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:uhd/AddReminderPage.dart';
 import 'package:uhd/ContactUs.dart';
 import 'package:uhd/Help.dart';
+import 'package:uhd/MyMedicinesPage.dart';
 import 'package:uhd/Settings.dart';
-import 'AddMedicinePage.dart';
-import 'AddReminderPage.dart';
+import 'package:uhd/auth_widgets.dart';
+import 'package:uhd/med_models.dart';
 
-//
-// درووستکردنی کڵاسێك بۆ دەرمانەکان(ئایدییەکەی، ناوەکەی، کاتی خواردنەکەی)
-// ئایدییەکەی بەس بۆ کاتی سڕینەوەی بەکار ئەهێنین، جگە لەوە پێویستمان بە ئایدی نییە
-class MedicationReminder {
-  final int id;
-  String name;
-  TimeOfDay time;
-  final String? notes;
-  final String? condition;
-
-  MedicationReminder({
-    required this.id,
-    required this.name,
-    required this.time,
-    this.notes,
-    this.condition,
-  });
-}
-
-class Medicine {
-  final int id;
-  String name;
-  String department;
-  String? description;
-
-  Medicine({
-    required this.id,
-    required this.name,
-    required this.department,
-    this.description,
-  });
-}
+enum ReminderFilter { all, completed, delayed, waiting }
 
 class HomePage extends StatefulWidget {
   final String userName;
+
   const HomePage({super.key, required this.userName});
 
   @override
@@ -48,756 +19,856 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  
-  //
-  // هەموو ئەو دەرمان و کاتانەی زیادیان ئەکەین ئەبێت بە شێوازی لیست هەڵیبگرین
-  // ئەگەر بە شێوازی لیست نەبێت ناتوانیت زیاد لە دانەیەك زیاد بکەیت
-  // وەك ئەرەی لیستەکەی جاڤا
   final List<MedicationReminder> _reminders = [];
-
   final List<Medicine> _medicines = [];
+  ReminderFilter _filter = ReminderFilter.all;
+  DateTime _selectedDate = DateTime.now();
 
-  // میذۆدی زیاد کردن کە  پارامیتەرەکانی ناوی دەرمان و کاتی خواردنی تیایە
-  void _addMedicineReminder(String name, String timeStr, String notes, String condition) {
-    try {
-      // بۆ وەرگرتنی کاتەکە بە شێوازی Hour:Minute
-      final parts = timeStr.split(':');
+  List<MedicationReminder> get _filteredReminders {
+    final dayReminders = _reminders
+        .where((reminder) => _isSameDay(reminder.scheduledAt, _selectedDate))
+        .toList();
+    switch (_filter) {
+      case ReminderFilter.completed:
+        return dayReminders.where((reminder) => reminder.isCompleted).toList();
+      case ReminderFilter.delayed:
+        return dayReminders.where((reminder) => reminder.isDelayed).toList();
+      case ReminderFilter.waiting:
+        return dayReminders
+            .where(
+              (reminder) =>
+                  reminder.status == ReminderStatus.waiting &&
+                  !reminder.isDelayed,
+            )
+            .toList();
+      case ReminderFilter.all:
+        return dayReminders;
+    }
+  }
 
-      // ئەمەیان تەنها سەعاتەکە وەرەگرێت و ئەیخاتە بەشی یەکەمی parts کە لە سەرەوە دروست کراوە
-      int hour = int.parse(parts[0]);
+  int _countFor(ReminderFilter filter) {
+    final dayReminders = _reminders
+        .where((reminder) => _isSameDay(reminder.scheduledAt, _selectedDate))
+        .toList();
+    switch (filter) {
+      case ReminderFilter.all:
+        return dayReminders.length;
+      case ReminderFilter.completed:
+        return dayReminders.where((reminder) => reminder.isCompleted).length;
+      case ReminderFilter.delayed:
+        return dayReminders.where((reminder) => reminder.isDelayed).length;
+      case ReminderFilter.waiting:
+        return dayReminders
+            .where(
+              (reminder) =>
+                  reminder.status == ReminderStatus.waiting &&
+                  !reminder.isDelayed,
+            )
+            .length;
+    }
+  }
 
-      // ئەمەیان تەنها خولەکەکە وەرەگرێت و ئەیخاتە بەشی دووەمی parts کە لە سەرەوە دروست کراوە
-      int minute = int.parse(parts[1]);
+  bool _isSameDay(DateTime first, DateTime second) {
+    return first.year == second.year &&
+        first.month == second.month &&
+        first.day == second.day;
+  }
 
-      // بۆ ڕێگری کردن لە داغڵکردنی کاتی هەڵە
-      // بەم جۆرەیە:  ئەگەر سەعات بچووکتر بوو لە سفر، یان گەورەتر بوو  لە ٢٣
-      // یان خولەك بچووکتر بوو لە سفر یان گەورەتر بوو لە ٥٩
-      if (hour < 0 || hour > 23 || minute < 0 || minute > 59) {
-        //
-        // ئەوا ئەم ئیرۆر مەسجە پیشانبە لە سناك باڕ
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: Hour must be 0 to 23 and Minute 0 to 59.'),
-            backgroundColor: Colors.red,
-          ),
-        );
-        return;
+  void _saveMedicine(Medicine medicine) {
+    setState(() {
+      final index = _medicines.indexWhere((item) => item.id == medicine.id);
+      if (index == -1) {
+        _medicines.add(medicine);
+      } else {
+        _medicines[index] = medicine;
+        for (final reminder in _reminders) {
+          if (reminder.medicineId == medicine.id) {
+            reminder.medicineName = medicine.name;
+            reminder.medicineCategory = medicine.category;
+            reminder.medicineForm = medicine.form;
+          }
+        }
       }
-      setState(() {
-        // زیادکردنی دەرمانەکە بۆ لیستەکە
-        // add خۆی میذۆدی حازری دارتە بۆ زیادکردنی ئایتمێك بۆ لیست
-        _reminders.add(
-          // کۆنسترەکتەری کڵاسی MedicationReminder ـە
-          MedicationReminder(
-            // درووست کردنی ئایدییەك کە بە پێی چرکەی درووستکردنی ئایتمەکە دایئەنێت
-            id: DateTime.now().second,
-            name: name,
-            // درووستکردنی کاتەکە
-            // سەعاتەکەی لە سەرەوە درووستمان کرد ئەخاتە Hour
-            //و خولەکەکەش ئەخاتە Minuteـەوە
-            time: TimeOfDay(hour: hour, minute: minute),
-            notes: notes.isNotEmpty == true ? notes : null,
-            condition: condition,
-          ),
-        );
-      });
-    } catch (e) {
-      // هەر ئیرۆرێکی تر ڕوویدا ئەوا لە کۆنسوڵا پیشانیبە
-      print(e);
-    }
+    });
   }
 
-  void _addMedicine(String name, String department, String description) {
+  void _deleteMedicine(int medicineId) {
     setState(() {
-      _medicines.add(
-        Medicine(
-          id: DateTime.now().second,
-          name: name,
-          department: department,
-          description: description.isNotEmpty ? description : null,
-        ),
+      _medicines.removeWhere((medicine) => medicine.id == medicineId);
+      _reminders.removeWhere((reminder) => reminder.medicineId == medicineId);
+    });
+  }
+
+  void _saveReminders(List<MedicationReminder> reminders) {
+    setState(() {
+      _reminders.addAll(reminders);
+      if (reminders.isNotEmpty) {
+        _selectedDate = reminders.first.scheduledAt;
+      }
+    });
+  }
+
+  void _markTook(MedicationReminder reminder) {
+    setState(() => reminder.status = ReminderStatus.completed);
+  }
+
+  Future<void> _reschedule(MedicationReminder reminder) async {
+    final date = await showDatePicker(
+      context: context,
+      initialDate: reminder.scheduledAt.isBefore(DateTime.now())
+          ? DateTime.now()
+          : reminder.scheduledAt,
+      firstDate: DateTime.now().subtract(const Duration(days: 1)),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+    );
+    if (date == null) return;
+
+    if (!mounted) return;
+    final time = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(reminder.scheduledAt),
+    );
+    if (time == null) return;
+
+    setState(() {
+      reminder.scheduledAt = DateTime(
+        date.year,
+        date.month,
+        date.day,
+        time.hour,
+        time.minute,
       );
+      reminder.status = ReminderStatus.waiting;
     });
   }
 
-  // میذۆدی سڕینەوەی ئایتمێك لە لیستەکە
-  void _deleteMedicine(int id) {
-    setState(() {
-      // سڕینەوەی دەرمانەکە لە لیستەکە بە پێی ئایدی
-      _reminders.removeWhere((reminder) => reminder.id == id);
-    });
-  }
-
-  void _deleteMedicineItem(int id) {
-    setState(() {
-      _medicines.removeWhere((medicine) => medicine.id == id);
-    });
-  }
-
-  Color _getDepartmentColor(String department) {
-    switch (department) {
-      case 'Pain Relief':
-        return Colors.red[400]!;
-      case 'Cardiovascular':
-        return Colors.blue[400]!;
-      case 'Antibiotics':
-        return Colors.green[400]!;
-      case 'Diabetes':
-        return Colors.orange[400]!;
-      case 'Respiratory':
-        return Colors.cyan[400]!;
-      case 'Mental Health':
-        return Colors.purple[400]!;
-      case 'Digestive':
-        return Colors.brown[400]!;
-      case 'Hormonal':
-        return Colors.pink[400]!;
-      case 'Skin Care':
-        return Colors.teal[400]!;
-      case 'Vitamins & Supplements':
-        return Colors.yellow[600]!;
-      default:
-        return Colors.grey[400]!;
-    }
-  }
-
-  Color _getConditionColor(String condition) {
-    switch (condition) {
-      case 'Pain Relief':
-      case 'Headache':
-        return Colors.red[300]!;
-      case 'Fever':
-        return Colors.orange[300]!;
-      case 'Infection':
-        return Colors.green[300]!;
-      case 'Blood Pressure':
-        return Colors.blue[300]!;
-      case 'Diabetes':
-        return Colors.purple[300]!;
-      case 'Allergy':
-        return Colors.yellow[300]!;
-      case 'Digestive Issues':
-        return Colors.brown[300]!;
-      case 'Mental Health':
-        return Colors.indigo[300]!;
-      default:
-        return Colors.grey[300]!;
-    }
-  }
- Future<void> confirmDelete(BuildContext context, int id) async {
-    bool? result = await showDialog<bool>(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text("Confirm Delete"),
-          content: const Text("Are you sure you want to delete this reminder?"),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop(false);
-              },
-              child: const Text("Cancel"),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red,
-              ),
-              onPressed: () {
-                Navigator.of(context).pop(true);
-              },
-              child: const Text("Delete"),
-            ),
-          ],
-        );
-      },
-    );
-
-    if (result == true) {
-      _deleteMedicine(id);
-    }
-  }
-
-  // میذۆدی دەستکاری کردنی ئایتمێك
-
-  void _editMedicine(MedicationReminder reminder) {
-    final TextEditingController nameController = TextEditingController(
-      text: reminder.name,
-    );
-
-    final TextEditingController timeController = TextEditingController(
-      text:
-          '${reminder.time.hour.toString().padLeft(2, '0')}:${reminder.time.minute.toString().padLeft(2, '0')}',
-    );
-    final TextEditingController noteController = TextEditingController(
-      text: reminder.notes ?? '',
-    );
-    String? selectedCondition = reminder.condition;
-
-    final List<String> conditions = [
-      'Pain Relief',
-      'Headache',
-      'Fever',
-      'Infection',
-      'Blood Pressure',
-      'Diabetes',
-      'Allergy',
-      'Digestive Issues',
-      'Mental Health',
-      'Other'
-    ];
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,//ببێت گەورە Bottom Sheet:ڕێگە دەدات 
-
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+  void _openMedicines() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => MyMedicinesPage(
+          medicines: _medicines,
+          onSaveMedicine: _saveMedicine,
+          onDeleteMedicine: _deleteMedicine,
+        ),
       ),
-      /// بۆ دروستکردنی بۆکسەکە deary akain ka chy teabet 
-      builder: (context) {
-        return Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom,
-            left: 16,
-            right: 16,
-            top: 16,
-          ),
-          child: StatefulBuilder(
-            builder: (context, setState) => Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'Edit Medicine Reminder',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-                ),
-                SizedBox(height: 12),
-                TextField(
-                  controller: nameController,
-                  decoration: InputDecoration(
-                    labelText: 'Medicine Name',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                SizedBox(height: 12),
-                DropdownButtonFormField<String>(
-                  initialValue: selectedCondition,
-                  decoration: InputDecoration(
-                    labelText: 'Condition',
-                    border: OutlineInputBorder(),
-                  ),
-                  items: conditions.map((condition) {
-                    return DropdownMenuItem<String>(
-                      value: condition,
-                      child: Text(condition),
-                    );
-                  }).toList(),
-                  onChanged: (value) {
-                    setState(() {
-                      selectedCondition = value;
-                    });
-                  },
-                ),
-                SizedBox(height: 12),
-                TextField(
-                  controller: timeController,
-                  decoration: InputDecoration(
-                    labelText: 'Time (HH:MM)',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                SizedBox(height: 12),
-                TextField(
-                  controller: noteController,
-                  decoration: InputDecoration(
-                    labelText: 'Notes',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                SizedBox(height: 12),
-                Row(
-                   mainAxisAlignment: MainAxisAlignment.end,//cancel and update abata lay rast
-                  children: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: Text('Cancel'),
-                    ),
-                    
-                    ElevatedButton(
-                      onPressed: () {
-                        final name = nameController.text.trim();
-                        final time = timeController.text.trim();
-                        final notes = noteController.text.trim();
-
-                        if (name.isNotEmpty && time.contains(':')) {
-                          final parts = time.split(':');
-                          final hour = int.parse(parts[0]);
-                          final minute = int.parse(parts[1]);
-
-                          if (hour >= 0 && hour <= 23 && minute >= 0 && minute <= 59) {
-                            setState(() {
-                              reminder.name = name;
-                              reminder.time = TimeOfDay(hour: hour, minute: minute);
-                              // Note: Since condition is final in MedicationReminder, we'd need to recreate the object
-                              // For now, we'll just update the other fields
-                            });
-                            Navigator.pop(context);
-                          }
-                        }
-                      },
-                      child: Text('Update'),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 10),
-              ],
-            ),
-          ),
-        );
-      },
     );
-   }
-  //                           hour <= 23 &&
-  //                           minute >= 0 &&
-  //                           minute <= 59) {
-  //                         setState(() {//nwekrdnaway katy darman
-  //                           reminder.name = name;
-  //                           reminder.time = TimeOfDay(
-  //                             hour: hour,
-  //                             minute: minute,
-  //                           );
-  //                         });
-  //                         Navigator.pop(context);
-  //                       }
-  //                     }
-  //                   },
-  //                   child: Text('Update'),
-  //                 ),
-  //               ],
-  //             ),
-  //             SizedBox(height = 10),
-  //           ],
-  //         ),
-  //       );
-  //     },
-  //   );
-  // }
+  }
+
+  void _openAddReminder() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => AddReminderPage(
+          medicines: _medicines,
+          onSaveReminders: _saveReminders,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickSelectedDate() async {
+    final date = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: DateTime.now().subtract(const Duration(days: 365)),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+    );
+    if (date != null) {
+      setState(() => _selectedDate = date);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final reminders = _filteredReminders;
+
     return Scaffold(
-      //
-      // بەدیەکە ئەخاتە پشتی ئاپباڕەکە و ڕەنگی باگراوندەکەی ئەکات بە ڕەنگی ئاویی
-      extendBodyBehindAppBar: true,// بۆ درووستکردنی ئاپباڕەکە لە سەر باگراوندەکە
-       backgroundColor: const Color.fromARGB(0, 235, 9, 9),
-      ///////////// drawer 
-      drawer: Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: [
-            DrawerHeader(
-              //rangy backgraund drawer bashy sarawa
-              decoration: BoxDecoration(color: Colors.blueGrey),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,//nusenaka la saratawa abet
-                mainAxisAlignment: MainAxisAlignment.center,//nusenaka abata center
-                children: [
-                  Text(
-                    'Welcome, ${widget.userName}!',//bachy login bkait aw nawa anusry
-                    style: TextStyle(color: Colors.white, fontSize: 24),
-                  ),
-                ],
+      backgroundColor: Colors.white,
+      drawer: _HomeDrawer(userName: widget.userName),
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        foregroundColor: authInk,
+        elevation: 0,
+        title: const Text(
+          'MedReminder',
+          style: TextStyle(fontWeight: FontWeight.w900),
+        ),
+        actions: [
+          IconButton(
+            tooltip: 'My Medicines',
+            onPressed: _openMedicines,
+            icon: const Icon(Icons.inventory_2_outlined),
+          ),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        backgroundColor: authPrimary,
+        foregroundColor: Colors.white,
+        onPressed: _openAddReminder,
+        icon: const Icon(Icons.add),
+        label: const Text('Reminder'),
+      ),
+      body: CustomScrollView(
+        slivers: [
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(18, 6, 18, 0),
+              child: _HomeHeader(
+                userName: widget.userName,
+                medicineCount: _medicines.length,
+                reminderCount: _countFor(ReminderFilter.all),
+                onOpenMedicines: _openMedicines,
+                onAddReminder: _openAddReminder,
               ),
             ),
-
-            ListTile(
-              leading: Icon(Icons.settings),
-              title: Text('Settings'),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => Settings()),
-                );
-              },
+          ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(18, 18, 18, 10),
+              child: _SelectedDateCard(
+                selectedDate: _selectedDate,
+                onPrevious: () {
+                  setState(() {
+                    _selectedDate = _selectedDate.subtract(
+                      const Duration(days: 1),
+                    );
+                  });
+                },
+                onNext: () {
+                  setState(() {
+                    _selectedDate = _selectedDate.add(
+                      const Duration(days: 1),
+                    );
+                  });
+                },
+                onPickDate: _pickSelectedDate,
+              ),
             ),
-
-            ListTile(
-              leading: Icon(Icons.contact_mail),
-              title: Text('Contact Us'),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => ContactUsPage()),
-                );
-              },
+          ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(18, 0, 18, 12),
+              child: _FilterBar(
+                selected: _filter,
+                countFor: _countFor,
+                onSelected: (filter) => setState(() => _filter = filter),
+              ),
             ),
-            
-            ListTile(
-              leading: Icon(Icons.help),
-              title: Text('Help'),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => HelpPage()),
-                );
-              },
+          ),
+          if (reminders.isEmpty)
+            SliverFillRemaining(
+              hasScrollBody: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(18, 0, 18, 90),
+                child: _EmptyReminderState(
+                  hasMedicines: _medicines.isNotEmpty,
+                  onOpenMedicines: _openMedicines,
+                  onAddReminder: _openAddReminder,
+                ),
+              ),
+            )
+          else
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(18, 0, 18, 96),
+              sliver: SliverList(
+                delegate: SliverChildBuilderDelegate(
+                  (context, index) {
+                    if (index.isOdd) return const SizedBox(height: 12);
+                    final reminder = reminders[index ~/ 2];
+                    return _ReminderCard(
+                      reminder: reminder,
+                      onTook: () => _markTook(reminder),
+                      onReschedule: () => _reschedule(reminder),
+                      onDelete: () {
+                        setState(() => _reminders.remove(reminder));
+                      },
+                    );
+                  },
+                  childCount: reminders.length * 2 - 1,
+                ),
+              ),
             ),
-            
-          ],
-        ),
+        ],
       ),
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,// appbary backround laabat
-        elevation: 0,
-        centerTitle: true,//nusenaka abata nawara
-        title: Text('MedReminder'),
-        //
-        //گۆڕینی ڕەنگی بەتنی دراوەرەکە
-        iconTheme: IconThemeData(color: Colors.white),//rangy battony drawer
-        //
-        titleTextStyle: TextStyle(
-          color: Colors.white,//rangy nusenaka agory bashy saraway nawarast
-          fontSize: 20,
-          fontWeight: FontWeight.w600,
-        ),
+    );
+  }
+}
+
+class _SelectedDateCard extends StatelessWidget {
+  final DateTime selectedDate;
+  final VoidCallback onPrevious;
+  final VoidCallback onNext;
+  final VoidCallback onPickDate;
+
+  const _SelectedDateCard({
+    required this.selectedDate,
+    required this.onPrevious,
+    required this.onNext,
+    required this.onPickDate,
+  });
+
+  String get _label {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final selected = DateTime(
+      selectedDate.year,
+      selectedDate.month,
+      selectedDate.day,
+    );
+    if (selected == today) return 'Today';
+    if (selected == today.add(const Duration(days: 1))) return 'Tomorrow';
+    if (selected == today.subtract(const Duration(days: 1))) return 'Yesterday';
+    return '${selectedDate.year}/${selectedDate.month}/${selectedDate.day}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.teal.shade50),
       ),
-      body: Container(
-        //
-        //بۆ تێکەڵکردنی ڕەنگی باگراوند
-        // بۆ پشتی ئاپباڕەکە و بەدییەکە
-        // ...kamll ranga shinakaea background
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,//bashy xwaraway lay chap kall
-            end: Alignment.bottomRight,//bashy saraway lay rast tox akat
-            // بۆ بینینی کاریگەرییەکەی ئەم ڕەنگە ڕەشە بگۆڕە
-            colors: Theme.of(context).brightness == Brightness.dark
-            //katek ka darkmoodman habet ama agory rangy eakam hamuy rangy dwam tekaly rangy eakam abet
-                ? [const Color.fromARGB(255, 46, 70, 114), const Color.fromARGB(255, 240, 241, 242)]
-               //rangy pshtaway agory dwamish tekaly rangy eakam abet
-                : [const Color.fromARGB(255, 25, 169, 221), const Color.fromARGB(255, 235, 239, 235)],
+      child: Row(
+        children: [
+          IconButton(
+            tooltip: 'Previous day',
+            onPressed: onPrevious,
+            icon: const Icon(Icons.chevron_left, color: authInk),
+          ),
+          Expanded(
+            child: InkWell(
+              borderRadius: BorderRadius.circular(14),
+              onTap: onPickDate,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Column(
+                  children: [
+                    Text(
+                      _label,
+                      style: const TextStyle(
+                        color: authInk,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${selectedDate.year}/${selectedDate.month}/${selectedDate.day}',
+                      style: TextStyle(
+                        color: Colors.blueGrey.shade500,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          IconButton(
+            tooltip: 'Next day',
+            onPressed: onNext,
+            icon: const Icon(Icons.chevron_right, color: authInk),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HomeHeader extends StatelessWidget {
+  final String userName;
+  final int medicineCount;
+  final int reminderCount;
+  final VoidCallback onOpenMedicines;
+  final VoidCallback onAddReminder;
+
+  const _HomeHeader({
+    required this.userName,
+    required this.medicineCount,
+    required this.reminderCount,
+    required this.onOpenMedicines,
+    required this.onAddReminder,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Hi, $userName',
+          style: const TextStyle(
+            color: authInk,
+            fontSize: 28,
+            fontWeight: FontWeight.w900,
           ),
         ),
+        const SizedBox(height: 4),
+        Text(
+          'Your reminders for the selected day',
+          style: TextStyle(
+            color: Colors.blueGrey.shade600,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 16),
+        Row(
+          children: [
+            Expanded(
+              child: _QuickAction(
+                icon: Icons.inventory_2_outlined,
+                label: 'Medicines',
+                value: medicineCount.toString(),
+                onTap: onOpenMedicines,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _QuickAction(
+                icon: Icons.notifications_active_outlined,
+                label: 'Today',
+                value: reminderCount.toString(),
+                onTap: onAddReminder,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
 
-        // SafeArea بۆ ڕیگری کردن لە تێکەڵ بوونی ئاپبار و بەدی
-        // لە کاتی بردنە دواوەی بەدی بۆ پشتی ئاپباڕ
-        child: SafeArea(
-          child: Padding(
-            padding: EdgeInsets.all(16),
-            child: Row(
+class _QuickAction extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+  final VoidCallback onTap;
+
+  const _QuickAction({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(18),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: Colors.teal.shade50),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: const Color(0xFFEAF8F6),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Icon(icon, color: authPrimary),
+            ),
+            const SizedBox(width: 12),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  flex: 3,
-                  child: Material(
-                    elevation: 8,//kaly bashy xwaraway background
-                    borderRadius: BorderRadius.circular(20),//qawsy chwarcheway containaraka
-                    color: Theme.of(context).brightness == Brightness.dark
-                        ? const Color.fromARGB(255, 167, 169, 143)
-                        : const Color.fromARGB(255, 248, 248, 248),
-                    child: Padding(
-                      padding: EdgeInsets.all(16),//icon u my reminderaka lagal nusenakay nawarast aheneta
-                      child: Column(
-                        children: [
-                          Row(
-                            children: [
-                              Container(
-                                //
-                                // ئەم دیکۆرەیشنە بۆ بازنەکەی پشتی ئایکۆنەکەیە
-                                decoration: BoxDecoration(
-                                  color: const Color.fromARGB(175, 200, 224, 237),
-                                  shape: BoxShape.circle,
-                                ),
-                                //
-                                padding: EdgeInsets.all(12),//sizy baznay pshty
-                                child: Icon(
-                                  Icons.medical_services,
-                                  color: Color.fromARGB(255, 143, 155, 169),//rangy iconaka nak baznakay pshty
-                                  size: 28,
-                                ),
-                              ),
-                              SizedBox(width: 12),//spacey icon lagal my reminderaka
-                              Text(
-                                'My Reminders',
-                                style: TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.w700,//rangy nusenaka tox akat waku boold
-                                  color:
-                                      Theme.of(context).brightness ==
-                                          Brightness.dark
-                                      ? Colors.white
-                                      : Colors.blueGrey[900],//rangy nusenaka agory
-                                ),
-                              ),
-
-                            
-                            ],
-                          ),
-                          SizedBox(height: 12),
-                          Expanded(
-                            child: _reminders.isEmpty
-                                ? Center(
-                                    child: Text(
-                                      'No reminders yet.\nTap + to add one.',
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(color: Colors.grey[700]),//rangy nusenakay nawarasta agory u kalew toxy dastkare akat
-                                    ),
-                                  )
-                                //
-                                // بەڵام ئەگەر لیستەکە ئایتمێکی تیابوو ئەوا:
-                                : GridView.builder(
-                                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                                      crossAxisCount: 2,
-                                      childAspectRatio: 1.2,
-                                      crossAxisSpacing: 12,
-                                      mainAxisSpacing: 12,
-                                    ),
-                                    itemCount: _reminders.length,
-                                    itemBuilder: (context, i) {
-                                      // نرخەکانی هەر ئایتمێك وەرەگرێت بە پێی ئیندێکسی ئایتمەکە
-                                      //وەك: (ئایدی، ناو، کاتی وەرگرتن)
-                                      // دواتر دەیخاتە ناو ڤاریەبڵی ئایتمس
-                                      final items = _reminders[i];
-                                      // بەشێوەی لیست ئەیگەڕێنێتەوە
-                                      return Container(
-                                        padding: EdgeInsets.all(12),
-                                        decoration: BoxDecoration(
-                                          color: Colors.white,
-                                          borderRadius: BorderRadius.circular(12),
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: Colors.grey.withOpacity(0.3),
-                                              spreadRadius: 2,
-                                              blurRadius: 5,
-                                              offset: Offset(0, 3),
-                                            ),
-                                          ],
-                                        ),
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              items.name,
-                                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                            SizedBox(height: 4),
-                                            if (items.condition != null)
-                                              Container(
-                                                padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                                decoration: BoxDecoration(
-                                                  color: _getConditionColor(items.condition!),
-                                                  borderRadius: BorderRadius.circular(8),
-                                                ),
-                                                child: Text(
-                                                  items.condition!,
-                                                  style: TextStyle(
-                                                    color: Colors.white,
-                                                    fontSize: 10,
-                                                    fontWeight: FontWeight.w500,
-                                                  ),
-                                                ),
-                                              ),
-                                            SizedBox(height: 4),
-                                            Row(
-                                              children: [
-                                                Icon(Icons.access_time, size: 16, color: Colors.blueGrey),
-                                                SizedBox(width: 4),
-                                                Text(
-                                                  items.time.format(context),
-                                                  style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-                                                ),
-                                              ],
-                                            ),
-                                            if (items.notes != null && items.notes!.isNotEmpty)
-                                              Padding(
-                                                padding: EdgeInsets.only(top: 4),
-                                                child: Text(
-                                                  items.notes!,
-                                                  style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic),
-                                                  maxLines: 1,
-                                                  overflow: TextOverflow.ellipsis,
-                                                ),
-                                              ),
-                                            Spacer(),
-                                            Row(
-                                              mainAxisAlignment: MainAxisAlignment.end,
-                                              children: [
-                                                IconButton(
-                                                  icon: Icon(Icons.edit, color: Colors.green, size: 20),
-                                                  onPressed: () {
-                                                    _editMedicine(items);
-                                                  },
-                                                  constraints: BoxConstraints(),
-                                                  padding: EdgeInsets.all(4),
-                                                ),
-                                                IconButton(
-                                                  icon: Icon(Icons.delete, color: Colors.red, size: 20),
-                                                  onPressed: () {
-                                                    confirmDelete(context, items.id);
-                                                  },
-                                                  constraints: BoxConstraints(),
-                                                  padding: EdgeInsets.all(4),
-                                                ),
-                                              ],
-                                            ),
-                                          ],
-                                        ),
-                                      );
-                                    },
-                                  ),
-
-                            //
-                          ),
-                        ],
-                      ),
-                    ),
+                Text(
+                  value,
+                  style: const TextStyle(
+                    color: authInk,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
                   ),
                 ),
-                SizedBox(width: 16),
-                Expanded(
-                  flex: 1,
-                  child: Material(
-                    elevation: 8,
-                    borderRadius: BorderRadius.circular(20),
-                    color: Theme.of(context).brightness == Brightness.dark
-                        ? const Color.fromARGB(255, 167, 169, 143)
-                        : const Color.fromARGB(255, 248, 248, 248),
-                    child: Padding(
-                      padding: EdgeInsets.all(16),
-                      child: Column(
-                        children: [
-                          ElevatedButton(
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => AddMedicinePage(onAddMedicine: _addMedicine),
-                                ),
-                              );
-                            },
-                            child: Text('Add Medicine'),
-                          ),
-                          SizedBox(height: 12),
-                          Text(
-                            'Medicines',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w700,
-                              color: Theme.of(context).brightness == Brightness.dark
-                                  ? Colors.white
-                                  : Colors.blueGrey[900],
-                            ),
-                          ),
-                          SizedBox(height: 12),
-                          Expanded(
-                            child: _medicines.isEmpty
-                                ? Center(
-                                    child: Text(
-                                      'No medicines',
-                                      style: TextStyle(color: Colors.grey[700]),
-                                    ),
-                                  )
-                                : GridView.builder(
-                                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                                      crossAxisCount: 1,
-                                      childAspectRatio: 2,
-                                    ),
-                                    itemCount: _medicines.length,
-                                    itemBuilder: (context, i) {
-                                      final items = _medicines[i];
-                                      return Card(
-                                        margin: EdgeInsets.symmetric(vertical: 4),
-                                        child: Padding(
-                                          padding: EdgeInsets.all(8),
-                                          child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                items.name,
-                                                style: TextStyle(
-                                                  fontWeight: FontWeight.bold,
-                                                  fontSize: 16,
-                                                ),
-                                              ),
-                                              SizedBox(height: 4),
-                                              Container(
-                                                padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                                decoration: BoxDecoration(
-                                                  color: _getDepartmentColor(items.department),
-                                                  borderRadius: BorderRadius.circular(8),
-                                                ),
-                                                child: Text(
-                                                  items.department,
-                                                  style: TextStyle(
-                                                    color: Colors.white,
-                                                    fontSize: 12,
-                                                    fontWeight: FontWeight.w500,
-                                                  ),
-                                                ),
-                                              ),
-                                              if (items.description != null && items.description!.isNotEmpty)
-                                                Padding(
-                                                  padding: EdgeInsets.only(top: 4),
-                                                  child: Text(
-                                                    items.description!,
-                                                    style: TextStyle(
-                                                      fontSize: 12,
-                                                      color: Colors.grey[600],
-                                                    ),
-                                                    maxLines: 2,
-                                                    overflow: TextOverflow.ellipsis,
-                                                  ),
-                                                ),
-                                              Spacer(),
-                                              Align(
-                                                alignment: Alignment.centerRight,
-                                                child: IconButton(
-                                                  icon: Icon(Icons.delete, color: Colors.red),
-                                                  onPressed: () {
-                                                    _deleteMedicineItem(items.id);
-                                                  },
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      );
-                                    },
-                                  ),
-                          ),
-                        ],
-                      ),
-                    ),
+                Text(
+                  label,
+                  style: TextStyle(
+                    color: Colors.blueGrey.shade500,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
               ],
             ),
-          ),
-        ),
-      ),
-
-      floatingActionButton: Container(
-        margin: EdgeInsets.all(10),//fab eata saraway containaraka
-        child: FloatingActionButton(
-          backgroundColor: Colors.blueGrey[300],
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => AddReminderPage(
-                  medicines: _medicines,
-                  onAddReminder: _addMedicineReminder,
-                ),
-              ),
-            );
-          },
-          //
-          // ئایکۆنی FAB
-          child: Icon(Icons.add, color: Colors.white),//rangy iconaka plusakay
+          ],
         ),
       ),
     );
   }
 }
 
+class _FilterBar extends StatelessWidget {
+  final ReminderFilter selected;
+  final int Function(ReminderFilter filter) countFor;
+  final ValueChanged<ReminderFilter> onSelected;
 
+  const _FilterBar({
+    required this.selected,
+    required this.countFor,
+    required this.onSelected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final filters = [
+      (ReminderFilter.all, 'All'),
+      (ReminderFilter.completed, 'Complete'),
+      (ReminderFilter.delayed, 'Delayed'),
+      (ReminderFilter.waiting, 'Waiting'),
+    ];
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: filters.map((entry) {
+          final filter = entry.$1;
+          final label = entry.$2;
+          final isSelected = selected == filter;
+          return Padding(
+            padding: const EdgeInsets.only(right: 10),
+            child: ChoiceChip(
+              selected: isSelected,
+              onSelected: (_) => onSelected(filter),
+              backgroundColor: Colors.white.withOpacity(0.78),
+              selectedColor: Colors.white,
+              side: BorderSide(
+                color: isSelected ? authPrimary : Colors.white.withOpacity(0.6),
+              ),
+              label: Text(
+                '$label ${countFor(filter)}',
+                style: TextStyle(
+                  color: isSelected ? authPrimary : authInk,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+}
+
+class _ReminderCard extends StatelessWidget {
+  final MedicationReminder reminder;
+  final VoidCallback onTook;
+  final VoidCallback onReschedule;
+  final VoidCallback onDelete;
+
+  const _ReminderCard({
+    required this.reminder,
+    required this.onTook,
+    required this.onReschedule,
+    required this.onDelete,
+  });
+
+  String _statusLabel() {
+    if (reminder.isCompleted) return 'Complete';
+    if (reminder.isDelayed) return 'Delayed';
+    return 'Waiting';
+  }
+
+  Color _statusColor() {
+    if (reminder.isCompleted) return authPrimary;
+    if (reminder.isDelayed) return Colors.redAccent;
+    return const Color(0xFFB7791F);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final statusColor = _statusColor();
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.96),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: Colors.white.withOpacity(0.7)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.10),
+            blurRadius: 18,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEAF8F6),
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                child: const Icon(Icons.medication_outlined, color: authPrimary),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  reminder.medicineName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: authInk,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+              IconButton(
+                tooltip: 'Delete',
+                onPressed: onDelete,
+                icon: const Icon(Icons.close, size: 20),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _Tag(label: reminder.medicineCategory),
+              _Tag(label: reminder.medicineForm),
+              _Tag(label: reminder.scheduleLabel),
+              _Tag(
+                label: _statusLabel(),
+                color: statusColor.withOpacity(0.12),
+                textColor: statusColor,
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              const Icon(Icons.schedule_outlined, color: authPrimary, size: 19),
+              const SizedBox(width: 8),
+              Text(
+                '${reminder.scheduledAt.year}/${reminder.scheduledAt.month}/${reminder.scheduledAt.day}  ${reminder.time.format(context)}',
+                style: const TextStyle(
+                  color: authInk,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '${reminder.quantity} ${reminder.quantityUnit}',
+            style: TextStyle(
+              color: Colors.blueGrey.shade600,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          if (reminder.notes != null) ...[
+            const SizedBox(height: 6),
+            Text(
+              reminder.notes!,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(color: Colors.blueGrey.shade500),
+            ),
+          ],
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: FilledButton.icon(
+                  onPressed: reminder.isCompleted ? null : onTook,
+                  icon: const Icon(Icons.check_circle_outline, size: 18),
+                  label: const Text('Took'),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: authPrimary,
+                    disabledBackgroundColor: Colors.teal.shade100,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: onReschedule,
+                  icon: const Icon(Icons.update, size: 18),
+                  label: const Text('Reschedule'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: authPrimary,
+                    side: BorderSide(color: Colors.teal.shade100),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Tag extends StatelessWidget {
+  final String label;
+  final Color? color;
+  final Color? textColor;
+
+  const _Tag({required this.label, this.color, this.textColor});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: color ?? const Color(0xFFEAF8F6),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: textColor ?? authPrimary,
+          fontSize: 12,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    );
+  }
+}
+
+class _EmptyReminderState extends StatelessWidget {
+  final bool hasMedicines;
+  final VoidCallback onOpenMedicines;
+  final VoidCallback onAddReminder;
+
+  const _EmptyReminderState({
+    required this.hasMedicines,
+    required this.onOpenMedicines,
+    required this.onAddReminder,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.96),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: Colors.white.withOpacity(0.65)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.notifications_none_outlined,
+              color: authPrimary,
+              size: 48,
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'No reminders here',
+              style: TextStyle(
+                color: authInk,
+                fontSize: 20,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              hasMedicines
+                  ? 'Create a reminder from one of your saved medicines.'
+                  : 'Add medicines first, then create reminders from them.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.blueGrey.shade500),
+            ),
+            const SizedBox(height: 18),
+            AuthPrimaryButton(
+              label: hasMedicines ? 'Add Reminder' : 'Open My Medicines',
+              icon: hasMedicines ? Icons.add : Icons.inventory_2_outlined,
+              onPressed: hasMedicines ? onAddReminder : onOpenMedicines,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _HomeDrawer extends StatelessWidget {
+  final String userName;
+
+  const _HomeDrawer({required this.userName});
+
+  @override
+  Widget build(BuildContext context) {
+    return Drawer(
+      backgroundColor: Colors.white,
+      child: ListView(
+        padding: EdgeInsets.zero,
+        children: [
+          DrawerHeader(
+            decoration: const BoxDecoration(color: Colors.white),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                const Icon(Icons.medication_outlined, color: authPrimary),
+                const SizedBox(height: 10),
+                Text(
+                  'Welcome, $userName',
+                  style: const TextStyle(
+                    color: authInk,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          ListTile(
+            leading: const Icon(Icons.settings),
+            title: const Text('Settings'),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => Settings()),
+              );
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.contact_mail),
+            title: const Text('Contact Us'),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => ContactUsPage()),
+              );
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.help),
+            title: const Text('Help'),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => HelpPage()),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:uhd/Home.dart';
 import 'package:uhd/Splash.dart';
 
 ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.light);
@@ -17,7 +18,7 @@ class Midterm extends StatelessWidget {
           debugShowCheckedModeBanner: false,
           darkTheme: ThemeData.dark(),
           themeMode: currentMode,
-          home: SplashScreen(),
+          home: HomePage(userName: 'User'),
         );
       },
     );

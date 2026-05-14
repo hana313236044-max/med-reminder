@@ -5,10 +5,7 @@ import 'package:uhd/auth_widgets.dart';
 class SignupScreen extends StatefulWidget {
   final List<Map<String, String>> users;
 
-  const SignupScreen({
-    super.key,
-    required this.users,
-  });
+  const SignupScreen({super.key, required this.users});
 
   @override
   State<SignupScreen> createState() => _SignupScreenState();
@@ -56,15 +53,13 @@ class _SignupScreenState extends State<SignupScreen>
       parent: _animationController,
       curve: Curves.easeOut,
     );
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.10),
-      end: Offset.zero,
-    ).animate(
-      CurvedAnimation(
-        parent: _animationController,
-        curve: Curves.easeOutCubic,
-      ),
-    );
+    _slideAnimation =
+        Tween<Offset>(begin: const Offset(0, 0.10), end: Offset.zero).animate(
+          CurvedAnimation(
+            parent: _animationController,
+            curve: Curves.easeOutCubic,
+          ),
+        );
     _animationController.forward();
   }
 
@@ -101,9 +96,7 @@ class _SignupScreenState extends State<SignupScreen>
       (user) => user["username"] == username,
     );
 
-    final emailExists = widget.users.any(
-      (user) => user["email"] == email,
-    );
+    final emailExists = widget.users.any((user) => user["email"] == email);
 
     if (usernameExists || emailExists) {
       setState(() {
@@ -128,10 +121,7 @@ class _SignupScreenState extends State<SignupScreen>
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
-        builder: (_) => VerifyEmailScreen(
-          userName: username,
-          email: email,
-        ),
+        builder: (_) => VerifyEmailScreen(userName: username, email: email),
       ),
     );
   }
@@ -140,8 +130,8 @@ class _SignupScreenState extends State<SignupScreen>
     if (value.isEmpty) {
       return "Name is required";
     }
-    if (value.length <= 3) {
-      return "Name must be more than 3 letters";
+    if (value.length <= 2) {
+      return "Name must be more than 2 characters";
     }
     return null;
   }
@@ -267,9 +257,7 @@ class _SignupScreenState extends State<SignupScreen>
                   errorText: _ageError,
                   onChanged: (value) {
                     if (_ageError != null) {
-                      setState(
-                        () => _ageError = _validateAge(value.trim()),
-                      );
+                      setState(() => _ageError = _validateAge(value.trim()));
                     }
                   },
                 ),

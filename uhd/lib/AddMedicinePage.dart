@@ -1,118 +1,264 @@
 import 'package:flutter/material.dart';
-
-class Medicine {
-  final int id;
-  String name;
-  String department;
-  String? description;
-
-  Medicine({
-    required this.id,
-    required this.name,
-    required this.department,
-    this.description,
-  });
-}
+import 'package:uhd/auth_widgets.dart';
+import 'package:uhd/med_models.dart';
 
 class AddMedicinePage extends StatefulWidget {
-  final Function(String, String, String) onAddMedicine;
+  final Medicine? medicine;
+  final ValueChanged<Medicine> onSaveMedicine;
 
-  const AddMedicinePage({super.key, required this.onAddMedicine});
+  const AddMedicinePage({
+    super.key,
+    this.medicine,
+    required this.onSaveMedicine,
+  });
 
   @override
-  _AddMedicinePageState createState() => _AddMedicinePageState();
+  State<AddMedicinePage> createState() => _AddMedicinePageState();
 }
 
 class _AddMedicinePageState extends State<AddMedicinePage> {
-  final TextEditingController _nameController = TextEditingController();
-  final TextEditingController _descriptionController = TextEditingController();
-  String? _selectedDepartment;
+  final _nameController = TextEditingController();
+  final _notesController = TextEditingController();
 
-  final List<String> _departments = [
+  final List<String> _categories = const [
+    'Supplements',
+    'Respiratory',
+    'Antibiotics',
     'Pain Relief',
     'Cardiovascular',
-    'Antibiotics',
     'Diabetes',
-    'Respiratory',
-    'Mental Health',
     'Digestive',
-    'Hormonal',
+    'Mental Health',
     'Skin Care',
-    'Vitamins & Supplements',
-    'Other'
+    'Hormonal',
   ];
+
+  final List<String> _forms = const [
+    'Pills',
+    'Syrup',
+    'Eye drops',
+    'Nose drops',
+    'Injection',
+    'Inhaler',
+    'Cream',
+    'Gel',
+    'Powder',
+    'Spray',
+  ];
+
+  final List<String> _ageGroups = const [
+    'Adults',
+    'Kids',
+    'Infants',
+    'Teens',
+    'Seniors',
+    'All ages',
+  ];
+
+  String? _category;
+  String? _form;
+  String? _ageGroup;
+  String? _nameError;
+  String? _categoryError;
+  String? _formError;
+  String? _ageError;
+
+  bool get _isEditing => widget.medicine != null;
+
+  @override
+  void initState() {
+    super.initState();
+    final medicine = widget.medicine;
+    if (medicine != null) {
+      _nameController.text = medicine.name;
+      _notesController.text = medicine.notes ?? '';
+      _category = medicine.category;
+      _form = medicine.form;
+      _ageGroup = medicine.ageGroup;
+    }
+  }
+
+  void _save() {
+    final name = _nameController.text.trim();
+    setState(() {
+      _nameError = name.length <= 3 ? 'Name must be more than 3 letters' : null;
+      _categoryError = _category == null ? 'Select what it is for' : null;
+      _formError = _form == null ? 'Select medicine type' : null;
+      _ageError = _ageGroup == null ? 'Select suitable age group' : null;
+    });
+
+    if (_nameError != null ||
+        _categoryError != null ||
+        _formError != null ||
+        _ageError != null) {
+      return;
+    }
+
+    final medicine = Medicine(
+      id: widget.medicine?.id ?? DateTime.now().microsecondsSinceEpoch,
+      name: name,
+      category: _category!,
+      form: _form!,
+      ageGroup: _ageGroup!,
+      notes: _notesController.text.trim().isEmpty
+          ? null
+          : _notesController.text.trim(),
+    );
+
+    widget.onSaveMedicine(medicine);
+    Navigator.pop(context);
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _notesController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Text('Add Medicine'),
-        backgroundColor: Colors.blueGrey,
+        backgroundColor: Colors.white,
+        foregroundColor: authInk,
+        elevation: 0,
+        title: Text(
+          _isEditing ? 'Update Medicine' : 'Add Medicine',
+          style: const TextStyle(fontWeight: FontWeight.w900),
+        ),
       ),
-      body: Padding(
-        padding: EdgeInsets.all(16),
-        child: Column(
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(18, 8, 18, 28),
           children: [
-            TextField(
-              controller: _nameController,
-              decoration: InputDecoration(
-                labelText: 'Medicine Name',
-                hintText: 'e.g. Ibuprofen',
-                border: OutlineInputBorder(),
+            Text(
+              _isEditing ? 'Update medicine' : 'Add medicine',
+              style: const TextStyle(
+                color: authInk,
+                fontSize: 28,
+                fontWeight: FontWeight.w900,
               ),
             ),
-            SizedBox(height: 16),
-            DropdownButtonFormField<String>(
-              initialValue: _selectedDepartment,
-              decoration: InputDecoration(
-                labelText: 'Department',
-                border: OutlineInputBorder(),
+            const SizedBox(height: 4),
+            Text(
+              'Save medicine details once, then reuse them in reminders.',
+              style: TextStyle(
+                color: Colors.blueGrey.shade600,
+                fontWeight: FontWeight.w700,
               ),
-              items: _departments.map((department) {
-                return DropdownMenuItem<String>(
-                  value: department,
-                  child: Text(department),
-                );
-              }).toList(),
+            ),
+            const SizedBox(height: 20),
+            AuthTextField(
+              controller: _nameController,
+              hintText: 'Medicine name',
+              icon: Icons.medication_outlined,
+              errorText: _nameError,
+              onChanged: (value) {
+                if (_nameError != null) {
+                  setState(() {
+                    _nameError = value.trim().length <= 3
+                        ? 'Name must be more than 3 letters'
+                        : null;
+                  });
+                }
+              },
+            ),
+            const SizedBox(height: 14),
+            _AuthDropdown(
+              value: _category,
+              hintText: 'What is it for?',
+              icon: Icons.local_hospital_outlined,
+              items: _categories,
+              errorText: _categoryError,
               onChanged: (value) {
                 setState(() {
-                  _selectedDepartment = value;
+                  _category = value;
+                  _categoryError = null;
                 });
               },
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: 14),
+            _AuthDropdown(
+              value: _form,
+              hintText: 'What is it?',
+              icon: Icons.category_outlined,
+              items: _forms,
+              errorText: _formError,
+              onChanged: (value) {
+                setState(() {
+                  _form = value;
+                  _formError = null;
+                });
+              },
+            ),
+            const SizedBox(height: 14),
+            _AuthDropdown(
+              value: _ageGroup,
+              hintText: 'Suitable age',
+              icon: Icons.groups_outlined,
+              items: _ageGroups,
+              errorText: _ageError,
+              onChanged: (value) {
+                setState(() {
+                  _ageGroup = value;
+                  _ageError = null;
+                });
+              },
+            ),
+            const SizedBox(height: 14),
             TextField(
-              controller: _descriptionController,
+              controller: _notesController,
               maxLines: 3,
-              decoration: InputDecoration(
-                labelText: 'Description (Optional)',
-                hintText: 'Brief description of the medicine and its uses',
-                border: OutlineInputBorder(),
+              decoration: authInputDecoration(
+                hintText: 'Notes optional',
+                icon: Icons.notes_outlined,
               ),
             ),
-            SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () {
-                final name = _nameController.text.trim();
-                final department = _selectedDepartment;
-                final description = _descriptionController.text.trim();
-                if (name.isNotEmpty && department != null) {
-                  widget.onAddMedicine(name, department, description);
-                  Navigator.pop(context);
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Please enter medicine name and select department')),
-                  );
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                minimumSize: Size(double.infinity, 50),
-              ),
-              child: Text('Add Medicine'),
+            const SizedBox(height: 22),
+            AuthPrimaryButton(
+              label: _isEditing ? 'Update Medicine' : 'Add Medicine',
+              icon: _isEditing ? Icons.save_outlined : Icons.add,
+              onPressed: _save,
             ),
           ],
         ),
       ),
+    );
+  }
+}
+
+class _AuthDropdown extends StatelessWidget {
+  final String? value;
+  final String hintText;
+  final IconData icon;
+  final List<String> items;
+  final String? errorText;
+  final ValueChanged<String?> onChanged;
+
+  const _AuthDropdown({
+    required this.value,
+    required this.hintText,
+    required this.icon,
+    required this.items,
+    required this.onChanged,
+    this.errorText,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return DropdownButtonFormField<String>(
+      value: value,
+      decoration: authInputDecoration(
+        hintText: hintText,
+        icon: icon,
+        errorText: errorText,
+      ),
+      items: items
+          .map((item) => DropdownMenuItem(value: item, child: Text(item)))
+          .toList(),
+      onChanged: onChanged,
     );
   }
 }
