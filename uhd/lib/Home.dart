@@ -96,7 +96,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   bool _isReminderInPast(MedicationReminder reminder) {
-    return reminder.scheduledAt.isBefore(DateTime.now());
+    return _isDateBeforeToday(reminder.scheduledAt);
   }
 
   void _setSelectedDate(DateTime date) {

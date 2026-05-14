@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:uhd/ContactUs.dart';
+import 'package:uhd/FAQ.dart';
 import 'package:uhd/Login_Screen.dart';
 import 'package:uhd/auth_widgets.dart';
 import 'package:uhd/main.dart';
@@ -210,78 +212,16 @@ class _SettingsState extends State<Settings> {
   }
 
   void _showFaq() {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('FAQ'),
-          content: const Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _DialogInfoLine(
-                title: 'Can I edit reminders?',
-                body: 'Yes, future reminders can be rescheduled.',
-              ),
-              SizedBox(height: 12),
-              _DialogInfoLine(
-                title: 'Can I add medicines without reminders?',
-                body: 'Yes, save medicines first and use them later.',
-              ),
-              SizedBox(height: 12),
-              _DialogInfoLine(
-                title: 'Is there a backend?',
-                body: 'Not yet. Data is temporary for now.',
-              ),
-            ],
-          ),
-          actions: [
-            FilledButton(
-              style: FilledButton.styleFrom(backgroundColor: authPrimary),
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Done'),
-            ),
-          ],
-        );
-      },
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const FAQPage()),
     );
   }
 
   void _showContactUs() {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Contact us'),
-          content: const Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _DialogInfoLine(
-                title: 'Email',
-                body: 'support@meditrack.app',
-              ),
-              SizedBox(height: 12),
-              _DialogInfoLine(
-                title: 'Phone',
-                body: '+964 750 000 0000',
-              ),
-              SizedBox(height: 12),
-              _DialogInfoLine(
-                title: 'Hours',
-                body: 'Sunday to Thursday, 9 AM - 5 PM',
-              ),
-            ],
-          ),
-          actions: [
-            FilledButton(
-              style: FilledButton.styleFrom(backgroundColor: authPrimary),
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Done'),
-            ),
-          ],
-        );
-      },
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const ContactUsPage()),
     );
   }
 }
@@ -523,41 +463,6 @@ class _SettingsIcon extends StatelessWidget {
         borderRadius: BorderRadius.circular(14),
       ),
       child: Icon(icon, color: color, size: 22),
-    );
-  }
-}
-
-class _DialogInfoLine extends StatelessWidget {
-  final String title;
-  final String body;
-
-  const _DialogInfoLine({
-    required this.title,
-    required this.body,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: const TextStyle(
-            color: authInk,
-            fontWeight: FontWeight.w900,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          body,
-          style: TextStyle(
-            color: Colors.blueGrey.shade600,
-            fontWeight: FontWeight.w600,
-            height: 1.3,
-          ),
-        ),
-      ],
     );
   }
 }
