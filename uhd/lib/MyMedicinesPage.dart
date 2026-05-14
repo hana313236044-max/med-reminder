@@ -25,7 +25,31 @@ class _MyMedicinesPageState extends State<MyMedicinesPage> {
     setState(() {});
   }
 
-  void _deleteMedicine(int id) {
+  Future<void> _deleteMedicine(int id) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Delete medicine?'),
+          content: const Text(
+            'Do you want to delete this medicine? Related reminders may be removed too.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              style: FilledButton.styleFrom(backgroundColor: Colors.redAccent),
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Delete'),
+            ),
+          ],
+        );
+      },
+    );
+    if (confirmed != true) return;
+
     widget.onDeleteMedicine(id);
     setState(() {});
   }

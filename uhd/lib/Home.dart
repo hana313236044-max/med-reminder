@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:uhd/AddMedicinePage.dart';
 import 'package:uhd/AddReminderPage.dart';
-import 'package:uhd/ContactUs.dart';
-import 'package:uhd/Help.dart';
-import 'package:uhd/MyMedicinesPage.dart';
-import 'package:uhd/Settings.dart';
 import 'package:uhd/auth_widgets.dart';
 import 'package:uhd/med_models.dart';
 
@@ -23,6 +20,7 @@ class _HomePageState extends State<HomePage> {
   final List<Medicine> _medicines = [];
   ReminderFilter _filter = ReminderFilter.all;
   DateTime _selectedDate = DateTime.now();
+  int _selectedTab = 0;
 
   List<MedicationReminder> get _filteredReminders {
     final dayReminders = _reminders
@@ -92,7 +90,16 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
-  void _deleteMedicine(int medicineId) {
+  Future<void> _deleteMedicine(int medicineId) async {
+    final confirmed = await _confirmAction(
+      title: 'Delete medicine?',
+      message:
+          'Do you want to delete this medicine? Related reminders will be removed too.',
+      confirmLabel: 'Delete',
+      confirmColor: Colors.redAccent,
+    );
+    if (!confirmed) return;
+
     setState(() {
       _medicines.removeWhere((medicine) => medicine.id == medicineId);
       _reminders.removeWhere((reminder) => reminder.medicineId == medicineId);
@@ -127,15 +134,33 @@ class _HomePageState extends State<HomePage> {
     );
     if (time == null) return;
 
-    setState(() {
-      reminder.scheduledAt = DateTime(
-        reminder.scheduledAt.year,
-        reminder.scheduledAt.month,
-        reminder.scheduledAt.day,
-        time.hour,
-        time.minute,
+    final updatedAt = DateTime(
+      reminder.scheduledAt.year,
+      reminder.scheduledAt.month,
+      reminder.scheduledAt.day,
+      time.hour,
+      time.minute,
+    );
+
+    if (updatedAt.isBefore(DateTime.now())) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Choose a future time for this reminder.'),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: Colors.redAccent,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+        ),
       );
+      return;
+    }
+
+    setState(() {
+      reminder.scheduledAt = updatedAt;
       reminder.status = ReminderStatus.waiting;
+      reminder.isRescheduled = true;
     });
   }
 
@@ -181,16 +206,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _openMedicines() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => MyMedicinesPage(
-          medicines: _medicines,
-          onSaveMedicine: _saveMedicine,
-          onDeleteMedicine: _deleteMedicine,
-        ),
-      ),
-    );
+    setState(() => _selectedTab = 1);
   }
 
   void _openAddReminder() {
@@ -219,39 +235,76 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    final reminders = _filteredReminders;
-
     return Scaffold(
       backgroundColor: Colors.white,
-      drawer: _HomeDrawer(
-        userName: widget.userName,
-        onOpenMedicines: _openMedicines,
-      ),
       appBar: AppBar(
         iconTheme: const IconThemeData(color: Colors.white),
         backgroundColor: authPrimary,
         foregroundColor: authInk,
         elevation: 0,
-        title: const Text(
-          'MedReminder',
+        title: Text(
+          _titleForTab(),
           style: TextStyle(fontWeight: FontWeight.w900, color: Colors.white),
         ),
-        actions: [
-          IconButton(
-            tooltip: 'My Medicines',
-            onPressed: _openMedicines,
-            icon: const Icon(Icons.inventory_2_outlined, color: Colors.white),
-          ),
-        ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: authPrimary,
-        foregroundColor: Colors.white,
-        onPressed: _openAddReminder,
-        icon: const Icon(Icons.add),
-        label: const Text('Reminder'),
+      floatingActionButton: _selectedTab > 1
+          ? null
+          : FloatingActionButton.extended(
+              backgroundColor: authPrimary,
+              foregroundColor: Colors.white,
+              onPressed:
+                  _selectedTab == 1 ? _openAddMedicineFromTab : _openAddReminder,
+              icon: const Icon(Icons.add),
+              label: Text(_selectedTab == 1 ? 'Medicine' : 'Reminder'),
+            ),
+      bottomNavigationBar: _AppBottomNavigation(
+        selectedIndex: _selectedTab,
+        onSelected: (index) => setState(() => _selectedTab = index),
       ),
-      body: CustomScrollView(
+      body: _bodyForTab(),
+    );
+  }
+
+  String _titleForTab() {
+    switch (_selectedTab) {
+      case 1:
+        return 'Medicine';
+      case 2:
+        return 'Inventory';
+      case 3:
+        return 'Profile';
+      case 0:
+      default:
+        return 'MedReminder';
+    }
+  }
+
+  Widget _bodyForTab() {
+    switch (_selectedTab) {
+      case 1:
+        return _MedicineTab(
+          medicines: _medicines,
+          onAddMedicine: _openAddMedicineFromTab,
+          onEditMedicine: _openEditMedicineFromTab,
+          onDeleteMedicine: _deleteMedicine,
+        );
+      case 2:
+        return _InventoryTab(
+          reminders: _reminders,
+          medicines: _medicines,
+        );
+      case 3:
+        return _ProfileTab(userName: widget.userName);
+      case 0:
+      default:
+        return _HomeTab();
+    }
+  }
+
+  Widget _HomeTab() {
+    final reminders = _filteredReminders;
+
+    return CustomScrollView(
         slivers: [
           SliverToBoxAdapter(
             child: Padding(
@@ -339,6 +392,26 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
         ],
+      );
+  }
+
+  void _openAddMedicineFromTab() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => AddMedicinePage(onSaveMedicine: _saveMedicine),
+      ),
+    );
+  }
+
+  void _openEditMedicineFromTab(Medicine medicine) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => AddMedicinePage(
+          medicine: medicine,
+          onSaveMedicine: _saveMedicine,
+        ),
       ),
     );
   }
@@ -422,6 +495,119 @@ class _SelectedDateCard extends StatelessWidget {
             icon: const Icon(Icons.chevron_right, color: authInk),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _AppBottomNavigation extends StatelessWidget {
+  final int selectedIndex;
+  final ValueChanged<int> onSelected;
+
+  const _AppBottomNavigation({
+    required this.selectedIndex,
+    required this.onSelected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    const items = [
+      _BottomNavData(Icons.home_outlined, Icons.home, 'Home'),
+      _BottomNavData(Icons.medication_outlined, Icons.medication, 'Medicine'),
+      _BottomNavData(
+        Icons.inventory_2_outlined,
+        Icons.inventory_2,
+        'Inventory',
+      ),
+      _BottomNavData(Icons.person_outline, Icons.person, 'Profile'),
+    ];
+
+    return SafeArea(
+      top: false,
+      child: Container(
+        margin: const EdgeInsets.fromLTRB(14, 0, 14, 12),
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: authInk,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: authInk.withOpacity(0.22),
+              blurRadius: 20,
+              offset: const Offset(0, 10),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            for (var i = 0; i < items.length; i++)
+              Expanded(
+                child: _BottomNavItem(
+                  data: items[i],
+                  selected: selectedIndex == i,
+                  onTap: () => onSelected(i),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _BottomNavData {
+  final IconData icon;
+  final IconData selectedIcon;
+  final String label;
+
+  const _BottomNavData(this.icon, this.selectedIcon, this.label);
+}
+
+class _BottomNavItem extends StatelessWidget {
+  final _BottomNavData data;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _BottomNavItem({
+    required this.data,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(18),
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        height: 52,
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        decoration: BoxDecoration(
+          color: selected ? Colors.white : Colors.transparent,
+          borderRadius: BorderRadius.circular(18),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              selected ? data.selectedIcon : data.icon,
+              color: selected ? authPrimary : Colors.white70,
+              size: 22,
+            ),
+            const SizedBox(height: 3),
+            FittedBox(
+              child: Text(
+                data.label,
+                style: TextStyle(
+                  color: selected ? authPrimary : Colors.white70,
+                  fontSize: 11,
+                  fontWeight: selected ? FontWeight.w900 : FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -631,18 +817,31 @@ class _ReminderCard extends StatelessWidget {
     return const Color(0xFFB7791F);
   }
 
+  Color _statusBackground() {
+    if (reminder.isCompleted) return const Color(0xFFEAF8F6);
+    if (reminder.isDelayed) return const Color(0xFFFFECEC);
+    return const Color(0xFFFFF6E5);
+  }
+
+  IconData _statusIcon() {
+    if (reminder.isCompleted) return Icons.check_circle_outline;
+    if (reminder.isDelayed) return Icons.warning_amber_outlined;
+    return Icons.schedule_outlined;
+  }
+
   @override
   Widget build(BuildContext context) {
     final statusColor = _statusColor();
+    final statusBackground = _statusBackground();
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.96),
+        color: statusBackground.withOpacity(0.48),
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: Colors.white.withOpacity(0.7)),
+        border: Border.all(color: statusColor.withOpacity(0.32), width: 1.2),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.10),
+            color: statusColor.withOpacity(0.10),
             blurRadius: 18,
             offset: const Offset(0, 10),
           ),
@@ -657,13 +856,10 @@ class _ReminderCard extends StatelessWidget {
                 width: 44,
                 height: 44,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFEAF8F6),
+                  color: Colors.white,
                   borderRadius: BorderRadius.circular(15),
                 ),
-                child: const Icon(
-                  Icons.medication_outlined,
-                  color: authPrimary,
-                ),
+                child: Icon(_statusIcon(), color: statusColor),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -697,6 +893,12 @@ class _ReminderCard extends StatelessWidget {
               _Tag(label: reminder.medicineCategory),
               _Tag(label: reminder.medicineForm),
               _Tag(label: reminder.scheduleLabel),
+              if (reminder.isRescheduled)
+                const _Tag(
+                  label: 'Rescheduled',
+                  color: Color(0xFFE8F0FF),
+                  textColor: Color(0xFF3157B7),
+                ),
               _Tag(
                 label: _statusLabel(),
                 color: statusColor.withOpacity(0.12),
@@ -862,80 +1064,435 @@ class _EmptyReminderState extends StatelessWidget {
   }
 }
 
-class _HomeDrawer extends StatelessWidget {
-  final String userName;
-  final VoidCallback onOpenMedicines;
+class _MedicineTab extends StatelessWidget {
+  final List<Medicine> medicines;
+  final VoidCallback onAddMedicine;
+  final ValueChanged<Medicine> onEditMedicine;
+  final ValueChanged<int> onDeleteMedicine;
 
-  const _HomeDrawer({required this.userName, required this.onOpenMedicines});
+  const _MedicineTab({
+    required this.medicines,
+    required this.onAddMedicine,
+    required this.onEditMedicine,
+    required this.onDeleteMedicine,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Drawer(
-      backgroundColor: Colors.white,
-      child: ListView(
-        padding: EdgeInsets.zero,
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(18, 16, 18, 96),
+      children: [
+        const Text(
+          'Medicine',
+          style: TextStyle(
+            color: authInk,
+            fontSize: 28,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'Saved medicines for reminders and tracking.',
+          style: TextStyle(
+            color: Colors.blueGrey.shade600,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 16),
+        FilledButton.icon(
+          style: FilledButton.styleFrom(
+            backgroundColor: authPrimary,
+            foregroundColor: Colors.white,
+            minimumSize: const Size.fromHeight(52),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+          ),
+          onPressed: onAddMedicine,
+          icon: const Icon(Icons.add),
+          label: const Text(
+            'Add Medicine',
+            style: TextStyle(fontWeight: FontWeight.w800),
+          ),
+        ),
+        const SizedBox(height: 22),
+        if (medicines.isEmpty)
+          const _EmptyMedicineInline()
+        else
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final crossAxisCount = constraints.maxWidth >= 560 ? 2 : 1;
+              return GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: medicines.length,
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: crossAxisCount,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
+                  mainAxisExtent: 190,
+                ),
+                itemBuilder: (context, index) {
+                  final medicine = medicines[index];
+                  return _MedicineInlineCard(
+                    medicine: medicine,
+                    onEdit: () => onEditMedicine(medicine),
+                    onDelete: () => onDeleteMedicine(medicine.id),
+                  );
+                },
+              );
+            },
+          ),
+      ],
+    );
+  }
+}
+
+class _InventoryTab extends StatelessWidget {
+  final List<MedicationReminder> reminders;
+  final List<Medicine> medicines;
+
+  const _InventoryTab({
+    required this.reminders,
+    required this.medicines,
+  });
+
+  int get completed =>
+      reminders.where((reminder) => reminder.isCompleted).length;
+
+  int get delayed => reminders.where((reminder) => reminder.isDelayed).length;
+
+  int get waiting =>
+      reminders.length - completed - delayed;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(18, 16, 18, 96),
+      children: [
+        const Text(
+          'Inventory',
+          style: TextStyle(
+            color: authInk,
+            fontSize: 28,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'Quick overview of medicines and reminder activity.',
+          style: TextStyle(
+            color: Colors.blueGrey.shade600,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 18),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final crossAxisCount = constraints.maxWidth >= 560 ? 2 : 1;
+            final cards = [
+              _InventoryCardData(
+                icon: Icons.medication_outlined,
+                label: 'Medicines',
+                value: medicines.length.toString(),
+              ),
+              _InventoryCardData(
+                icon: Icons.notifications_active_outlined,
+                label: 'Reminders',
+                value: reminders.length.toString(),
+              ),
+              _InventoryCardData(
+                icon: Icons.check_circle_outline,
+                label: 'Completed',
+                value: completed.toString(),
+              ),
+              _InventoryCardData(
+                icon: Icons.schedule_outlined,
+                label: 'Waiting',
+                value: waiting.toString(),
+              ),
+              _InventoryCardData(
+                icon: Icons.warning_amber_outlined,
+                label: 'Delayed',
+                value: delayed.toString(),
+              ),
+            ];
+            return GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: cards.length,
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: crossAxisCount,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+                mainAxisExtent: 120,
+              ),
+              itemBuilder: (context, index) {
+                final card = cards[index];
+                return _InventorySummaryCard(card: card);
+              },
+            );
+          },
+        ),
+      ],
+    );
+  }
+}
+
+class _ProfileTab extends StatelessWidget {
+  final String userName;
+
+  const _ProfileTab({required this.userName});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(18, 16, 18, 96),
+      children: [
+        const Text(
+          'Profile',
+          style: TextStyle(
+            color: authInk,
+            fontSize: 28,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        const SizedBox(height: 18),
+        Container(
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: Colors.teal.shade50),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 14,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              const CircleAvatar(
+                radius: 28,
+                backgroundColor: Color(0xFFEAF8F6),
+                child: Icon(Icons.person, color: authPrimary),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      userName,
+                      style: const TextStyle(
+                        color: authInk,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    Text(
+                      'MediTrack user',
+                      style: TextStyle(
+                        color: Colors.blueGrey.shade500,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _EmptyMedicineInline extends StatelessWidget {
+  const _EmptyMedicineInline();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEAF8F6),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.teal.shade100),
+      ),
+      child: Column(
         children: [
-          DrawerHeader(
-            decoration: const BoxDecoration(color: Colors.white),
+          Icon(
+            Icons.medication_outlined,
+            size: 42,
+            color: Colors.teal.shade700,
+          ),
+          const SizedBox(height: 10),
+          const Text(
+            'No medicines saved yet',
+            style: TextStyle(
+              color: authInk,
+              fontWeight: FontWeight.w800,
+              fontSize: 17,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MedicineInlineCard extends StatelessWidget {
+  final Medicine medicine;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+
+  const _MedicineInlineCard({
+    required this.medicine,
+    required this.onEdit,
+    required this.onDelete,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.teal.shade50),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 14,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 50,
+            height: 50,
+            decoration: BoxDecoration(
+              color: const Color(0xFFEAF8F6),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: const Icon(Icons.medication_outlined, color: authPrimary),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                const Icon(Icons.medication_outlined, color: authPrimary),
-                const SizedBox(height: 10),
                 Text(
-                  'Welcome, $userName',
+                  medicine.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     color: authInk,
-                    fontSize: 22,
+                    fontSize: 17,
                     fontWeight: FontWeight.w800,
                   ),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 6,
+                  children: [
+                    _Tag(label: medicine.category),
+                    _Tag(label: medicine.form),
+                    _Tag(label: medicine.ageGroup),
+                  ],
                 ),
               ],
             ),
           ),
-          ListTile(
-            leading: const Icon(Icons.home_outlined),
-            title: const Text('Home'),
-            onTap: () => Navigator.pop(context),
+          IconButton(
+            tooltip: 'Edit',
+            onPressed: onEdit,
+            icon: const Icon(Icons.edit_outlined, color: authPrimary),
           ),
-          ListTile(
-            leading: const Icon(Icons.inventory_2_outlined),
-            title: const Text('My Medicines'),
-            onTap: () {
-              Navigator.pop(context);
-              onOpenMedicines();
-            },
+          IconButton(
+            tooltip: 'Delete',
+            onPressed: onDelete,
+            icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
           ),
-          ListTile(
-            leading: const Icon(Icons.settings),
-            title: const Text('Settings'),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => Settings()),
-              );
-            },
+        ],
+      ),
+    );
+  }
+}
+
+class _InventoryCardData {
+  final IconData icon;
+  final String label;
+  final String value;
+
+  const _InventoryCardData({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+}
+
+class _InventorySummaryCard extends StatelessWidget {
+  final _InventoryCardData card;
+
+  const _InventorySummaryCard({required this.card});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.teal.shade50),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 14,
+            offset: const Offset(0, 8),
           ),
-          ListTile(
-            leading: const Icon(Icons.contact_mail),
-            title: const Text('Contact Us'),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => ContactUsPage()),
-              );
-            },
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: const Color(0xFFEAF8F6),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Icon(card.icon, color: authPrimary),
           ),
-          ListTile(
-            leading: const Icon(Icons.help),
-            title: const Text('Help'),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => HelpPage()),
-              );
-            },
+          const SizedBox(width: 14),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                card.value,
+                style: const TextStyle(
+                  color: authInk,
+                  fontSize: 24,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              Text(
+                card.label,
+                style: TextStyle(
+                  color: Colors.blueGrey.shade500,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
           ),
         ],
       ),

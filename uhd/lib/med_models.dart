@@ -32,6 +32,7 @@ class MedicationReminder {
   String scheduleLabel;
   String? notes;
   ReminderStatus status;
+  bool isRescheduled;
 
   MedicationReminder({
     required this.id,
@@ -45,6 +46,7 @@ class MedicationReminder {
     required this.scheduleLabel,
     this.notes,
     this.status = ReminderStatus.waiting,
+    this.isRescheduled = false,
   });
 
   bool get isDelayed =>
