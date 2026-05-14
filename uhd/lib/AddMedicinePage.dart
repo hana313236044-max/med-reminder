@@ -121,12 +121,16 @@ class _AddMedicinePageState extends State<AddMedicinePage> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: authPrimary,
         foregroundColor: authInk,
+        iconTheme: const IconThemeData(color: Colors.white),
         elevation: 0,
         title: Text(
           _isEditing ? 'Update Medicine' : 'Add Medicine',
-          style: const TextStyle(fontWeight: FontWeight.w900),
+          style: const TextStyle(
+            fontWeight: FontWeight.w900,
+            color: Colors.white,
+          ),
         ),
       ),
       body: SafeArea(

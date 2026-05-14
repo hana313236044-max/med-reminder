@@ -528,13 +528,14 @@ class _AppBottomNavigation extends StatelessWidget {
         margin: const EdgeInsets.fromLTRB(14, 0, 14, 12),
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: authInk,
+          color: Colors.white,
           borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: Colors.teal.shade50),
           boxShadow: [
             BoxShadow(
-              color: authInk.withOpacity(0.22),
-              blurRadius: 20,
-              offset: const Offset(0, 10),
+              color: Colors.black.withOpacity(0.10),
+              blurRadius: 18,
+              offset: const Offset(0, 8),
             ),
           ],
         ),
@@ -584,15 +585,16 @@ class _BottomNavItem extends StatelessWidget {
         height: 52,
         padding: const EdgeInsets.symmetric(horizontal: 8),
         decoration: BoxDecoration(
-          color: selected ? Colors.white : Colors.transparent,
+          color: selected ? const Color(0xFFEAF8F6) : Colors.transparent,
           borderRadius: BorderRadius.circular(18),
+          border: selected ? Border.all(color: Colors.teal.shade100) : null,
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
               selected ? data.selectedIcon : data.icon,
-              color: selected ? authPrimary : Colors.white70,
+              color: selected ? authPrimary : Colors.blueGrey.shade400,
               size: 22,
             ),
             const SizedBox(height: 3),
@@ -600,7 +602,7 @@ class _BottomNavItem extends StatelessWidget {
               child: Text(
                 data.label,
                 style: TextStyle(
-                  color: selected ? authPrimary : Colors.white70,
+                  color: selected ? authPrimary : Colors.blueGrey.shade500,
                   fontSize: 11,
                   fontWeight: selected ? FontWeight.w900 : FontWeight.w700,
                 ),
@@ -1130,7 +1132,7 @@ class _MedicineTab extends StatelessWidget {
                   crossAxisCount: crossAxisCount,
                   crossAxisSpacing: 12,
                   mainAxisSpacing: 12,
-                  mainAxisExtent: 190,
+                  mainAxisExtent: 220,
                 ),
                 itemBuilder: (context, index) {
                   final medicine = medicines[index];
@@ -1409,6 +1411,18 @@ class _MedicineInlineCard extends StatelessWidget {
                     _Tag(label: medicine.ageGroup),
                   ],
                 ),
+                if (medicine.notes != null) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    medicine.notes!,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: Colors.blueGrey.shade500,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
               ],
             ),
           ),

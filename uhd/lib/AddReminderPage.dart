@@ -73,7 +73,8 @@ class _AddReminderPageState extends State<AddReminderPage> {
       _intervalError = _isRepeating && (interval == null || interval <= 0)
           ? 'Enter a number greater than 0'
           : null;
-      _durationError = _isRepeating &&
+      _durationError =
+          _isRepeating &&
               (durationDays == null || durationDays <= 0 || durationDays > 365)
           ? 'Enter 1 to 365 days'
           : null;
@@ -178,12 +179,13 @@ class _AddReminderPageState extends State<AddReminderPage> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: authPrimary,
         foregroundColor: authInk,
         elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.white),
         title: const Text(
           'Add Reminder',
-          style: TextStyle(fontWeight: FontWeight.w900),
+          style: TextStyle(fontWeight: FontWeight.w900, color: Colors.white),
         ),
       ),
       body: SafeArea(
@@ -362,8 +364,8 @@ class _AddReminderPageState extends State<AddReminderPage> {
                       );
                       _durationError =
                           value == null || value <= 0 || value > 365
-                              ? 'Enter 1 to 365 days'
-                              : null;
+                          ? 'Enter 1 to 365 days'
+                          : null;
                     });
                   }
                 },
@@ -593,10 +595,7 @@ class _NoMedicinesNotice extends StatelessWidget {
       ),
       child: const Text(
         'Add a medicine first from My Medicines, then create reminders.',
-        style: TextStyle(
-          color: Color(0xFF7A4B00),
-          fontWeight: FontWeight.w700,
-        ),
+        style: TextStyle(color: Color(0xFF7A4B00), fontWeight: FontWeight.w700),
       ),
     );
   }

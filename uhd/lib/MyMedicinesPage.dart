@@ -129,7 +129,7 @@ class _MyMedicinesPageState extends State<MyMedicinesPage> {
                       crossAxisCount: crossAxisCount,
                       crossAxisSpacing: 12,
                       mainAxisSpacing: 12,
-                      mainAxisExtent: 190,
+                      mainAxisExtent: 220,
                     ),
                     itemBuilder: (context, index) {
                       final medicine = widget.medicines[index];
