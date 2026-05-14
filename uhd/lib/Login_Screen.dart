@@ -9,9 +9,27 @@ class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
   static final List<Map<String, String>> users = [
-    {"username": "Hana", "password": "Zhyar2004@", "email": "hana@gmail.com"},
-    {"username": "Sarina", "password": "Sarina12!", "email": "sarin@gmail.com"},
-    {"username": "Lare", "password": "Lare123!", "email": "lare@gmail.com"},
+    {
+      "username": "Hana",
+      "password": "Zhyar2004@",
+      "email": "hana@gmail.com",
+      "age": "22",
+      "bloodType": "A+",
+    },
+    {
+      "username": "Sarina",
+      "password": "Sarina12!",
+      "email": "sarin@gmail.com",
+      "age": "24",
+      "bloodType": "O+",
+    },
+    {
+      "username": "Lare",
+      "password": "Lare123!",
+      "email": "lare@gmail.com",
+      "age": "21",
+      "bloodType": "B+",
+    },
   ];
 
   @override
@@ -68,18 +86,30 @@ class _LoginScreenState extends State<LoginScreen>
       return;
     }
 
-    final valid = LoginScreen.users.any(
-      (user) => user["username"] == username && user["password"] == password,
-    );
+    Map<String, String>? user;
+    for (final savedUser in LoginScreen.users) {
+      if (savedUser["username"] == username &&
+          savedUser["password"] == password) {
+        user = savedUser;
+        break;
+      }
+    }
 
-    if (!valid) {
+    if (user == null) {
       setState(() => _passwordError = "Invalid username or password");
       return;
     }
 
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (_) => HomePage(userName: username)),
+      MaterialPageRoute(
+        builder: (_) => HomePage(
+          userName: user!["username"] ?? username,
+          email: user["email"] ?? "Not added",
+          age: user["age"] ?? "Not added",
+          bloodType: user["bloodType"] ?? "Not added",
+        ),
+      ),
     );
   }
 

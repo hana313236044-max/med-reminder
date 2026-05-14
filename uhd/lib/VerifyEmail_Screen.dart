@@ -5,11 +5,15 @@ import 'package:uhd/auth_widgets.dart';
 class VerifyEmailScreen extends StatefulWidget {
   final String userName;
   final String email;
+  final String age;
+  final String bloodType;
 
   const VerifyEmailScreen({
     super.key,
     required this.userName,
     required this.email,
+    required this.age,
+    required this.bloodType,
   });
 
   @override
@@ -50,7 +54,12 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen>
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
-        builder: (_) => HomePage(userName: widget.userName),
+        builder: (_) => HomePage(
+          userName: widget.userName,
+          email: widget.email,
+          age: widget.age,
+          bloodType: widget.bloodType,
+        ),
       ),
     );
   }

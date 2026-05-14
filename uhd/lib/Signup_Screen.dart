@@ -121,7 +121,12 @@ class _SignupScreenState extends State<SignupScreen>
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
-        builder: (_) => VerifyEmailScreen(userName: username, email: email),
+        builder: (_) => VerifyEmailScreen(
+          userName: username,
+          email: email,
+          age: age,
+          bloodType: _selectedBloodType!,
+        ),
       ),
     );
   }

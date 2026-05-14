@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:uhd/AddMedicinePage.dart';
 import 'package:uhd/AddReminderPage.dart';
+import 'package:uhd/Settings.dart';
 import 'package:uhd/auth_widgets.dart';
 import 'package:uhd/med_models.dart';
 
@@ -8,8 +9,17 @@ enum ReminderFilter { all, completed, delayed, waiting, notTaken }
 
 class HomePage extends StatefulWidget {
   final String userName;
+  final String email;
+  final String age;
+  final String bloodType;
 
-  const HomePage({super.key, required this.userName});
+  const HomePage({
+    super.key,
+    required this.userName,
+    this.email = 'Not added',
+    this.age = 'Not added',
+    this.bloodType = 'Not added',
+  });
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -278,8 +288,9 @@ class _HomePageState extends State<HomePage> {
           : FloatingActionButton.extended(
               backgroundColor: authPrimary,
               foregroundColor: Colors.white,
-              onPressed:
-                  _selectedTab == 1 ? _openAddMedicineFromTab : _openAddReminder,
+              onPressed: _selectedTab == 1
+                  ? _openAddMedicineFromTab
+                  : _openAddReminder,
               icon: const Icon(Icons.add),
               label: Text(_selectedTab == 1 ? 'Medicine' : 'Reminder'),
             ),
@@ -296,7 +307,7 @@ class _HomePageState extends State<HomePage> {
       case 1:
         return 'Medicine';
       case 2:
-        return 'Inventory';
+        return 'Settings';
       case 3:
         return 'Profile';
       case 0:
@@ -315,12 +326,14 @@ class _HomePageState extends State<HomePage> {
           onDeleteMedicine: _deleteMedicine,
         );
       case 2:
-        return _InventoryTab(
-          reminders: _reminders,
-          medicines: _medicines,
-        );
+        return const Settings(showScaffold: false);
       case 3:
-        return _ProfileTab(userName: widget.userName);
+        return _ProfileTab(
+          userName: widget.userName,
+          email: widget.email,
+          age: widget.age,
+          bloodType: widget.bloodType,
+        );
       case 0:
       default:
         return _HomeTab();
@@ -335,101 +348,99 @@ class _HomePageState extends State<HomePage> {
 
     return CustomScrollView(
       slivers: [
-          SliverToBoxAdapter(
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(18, 6, 18, 0),
+            child: _HomeHeader(
+              userName: widget.userName,
+              medicineCount: _medicines.length,
+              reminderCount: _countFor(ReminderFilter.all),
+              onOpenMedicines: _openMedicines,
+              onAddReminder: _openAddReminder,
+            ),
+          ),
+        ),
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(18, 18, 18, 10),
+            child: _SelectedDateCard(
+              selectedDate: _selectedDate,
+              onPrevious: () {
+                _setSelectedDate(
+                  _selectedDate.subtract(const Duration(days: 1)),
+                );
+              },
+              onNext: () {
+                _setSelectedDate(_selectedDate.add(const Duration(days: 1)));
+              },
+              onPickDate: _pickSelectedDate,
+            ),
+          ),
+        ),
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(18, 0, 18, 12),
+            child: _FilterBar(
+              selected: _filter,
+              countFor: _countFor,
+              showNotTaken: isPastDate,
+              onSelected: (filter) => setState(() => _filter = filter),
+            ),
+          ),
+        ),
+        if (reminders.isEmpty)
+          SliverFillRemaining(
+            hasScrollBody: false,
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(18, 6, 18, 0),
-              child: _HomeHeader(
-                userName: widget.userName,
-                medicineCount: _medicines.length,
-                reminderCount: _countFor(ReminderFilter.all),
+              padding: const EdgeInsets.fromLTRB(18, 0, 18, 90),
+              child: _EmptyReminderState(
+                hasMedicines: _medicines.isNotEmpty,
                 onOpenMedicines: _openMedicines,
                 onAddReminder: _openAddReminder,
+                title: showSkippedEmptyState
+                    ? 'No medicine has been skipped'
+                    : null,
+                message: showSkippedEmptyState
+                    ? 'Everything was handled on this day.'
+                    : null,
               ),
+            ),
+          )
+        else
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(18, 0, 18, 96),
+            sliver: SliverLayoutBuilder(
+              builder: (context, constraints) {
+                final crossAxisCount = constraints.crossAxisExtent >= 560
+                    ? 2
+                    : 1;
+                return SliverGrid(
+                  delegate: SliverChildBuilderDelegate((context, index) {
+                    final reminder = reminders[index];
+                    return _ReminderCard(
+                      reminder: reminder,
+                      onTook: _isReminderInPast(reminder)
+                          ? null
+                          : () => _markTook(reminder),
+                      onReschedule:
+                          reminder.isCompleted || _isReminderInPast(reminder)
+                          ? null
+                          : () => _reschedule(reminder),
+                      onDelete: _isReminderInPast(reminder)
+                          ? null
+                          : () => _deleteReminder(reminder),
+                    );
+                  }, childCount: reminders.length),
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: crossAxisCount,
+                    crossAxisSpacing: 12,
+                    mainAxisSpacing: 12,
+                    mainAxisExtent: 285,
+                  ),
+                );
+              },
             ),
           ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(18, 18, 18, 10),
-              child: _SelectedDateCard(
-                selectedDate: _selectedDate,
-                onPrevious: () {
-                  _setSelectedDate(
-                    _selectedDate.subtract(const Duration(days: 1)),
-                  );
-                },
-                onNext: () {
-                  _setSelectedDate(
-                    _selectedDate.add(const Duration(days: 1)),
-                  );
-                },
-                onPickDate: _pickSelectedDate,
-              ),
-            ),
-          ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(18, 0, 18, 12),
-              child: _FilterBar(
-                selected: _filter,
-                countFor: _countFor,
-                showNotTaken: isPastDate,
-                onSelected: (filter) => setState(() => _filter = filter),
-              ),
-            ),
-          ),
-          if (reminders.isEmpty)
-            SliverFillRemaining(
-              hasScrollBody: false,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(18, 0, 18, 90),
-                child: _EmptyReminderState(
-                  hasMedicines: _medicines.isNotEmpty,
-                  onOpenMedicines: _openMedicines,
-                  onAddReminder: _openAddReminder,
-                  title: showSkippedEmptyState
-                      ? 'No medicine has been skipped'
-                      : null,
-                  message: showSkippedEmptyState
-                      ? 'Everything was handled on this day.'
-                      : null,
-                ),
-              ),
-            )
-          else
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(18, 0, 18, 96),
-              sliver: SliverLayoutBuilder(
-                builder: (context, constraints) {
-                  final crossAxisCount = constraints.crossAxisExtent >= 560
-                      ? 2
-                      : 1;
-                  return SliverGrid(
-                    delegate: SliverChildBuilderDelegate((context, index) {
-                      final reminder = reminders[index];
-                      return _ReminderCard(
-                        reminder: reminder,
-                        onTook: _isReminderInPast(reminder)
-                            ? null
-                            : () => _markTook(reminder),
-                        onReschedule:
-                            reminder.isCompleted || _isReminderInPast(reminder)
-                            ? null
-                            : () => _reschedule(reminder),
-                        onDelete: _isReminderInPast(reminder)
-                            ? null
-                            : () => _deleteReminder(reminder),
-                      );
-                    }, childCount: reminders.length),
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: crossAxisCount,
-                      crossAxisSpacing: 12,
-                      mainAxisSpacing: 12,
-                      mainAxisExtent: 285,
-                    ),
-                  );
-                },
-              ),
-            ),
       ],
     );
   }
@@ -447,10 +458,8 @@ class _HomePageState extends State<HomePage> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => AddMedicinePage(
-          medicine: medicine,
-          onSaveMedicine: _saveMedicine,
-        ),
+        builder: (_) =>
+            AddMedicinePage(medicine: medicine, onSaveMedicine: _saveMedicine),
       ),
     );
   }
@@ -553,11 +562,7 @@ class _AppBottomNavigation extends StatelessWidget {
     const items = [
       _BottomNavData(Icons.home_outlined, Icons.home, 'Home'),
       _BottomNavData(Icons.medication_outlined, Icons.medication, 'Medicine'),
-      _BottomNavData(
-        Icons.inventory_2_outlined,
-        Icons.inventory_2,
-        'Inventory',
-      ),
+      _BottomNavData(Icons.settings_outlined, Icons.settings, 'Settings'),
       _BottomNavData(Icons.person_outline, Icons.person, 'Profile'),
     ];
 
@@ -565,16 +570,16 @@ class _AppBottomNavigation extends StatelessWidget {
       top: false,
       child: Container(
         margin: const EdgeInsets.fromLTRB(14, 0, 14, 12),
-        padding: const EdgeInsets.all(8),
+        padding: const EdgeInsets.all(7),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: Colors.teal.shade50),
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: const Color(0xFFE2F3F0)),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.10),
-              blurRadius: 18,
-              offset: const Offset(0, 8),
+              color: authPrimary.withOpacity(0.14),
+              blurRadius: 22,
+              offset: const Offset(0, 10),
             ),
           ],
         ),
@@ -621,19 +626,27 @@ class _BottomNavItem extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
-        height: 52,
+        height: 54,
         padding: const EdgeInsets.symmetric(horizontal: 8),
         decoration: BoxDecoration(
-          color: selected ? const Color(0xFFEAF8F6) : Colors.transparent,
-          borderRadius: BorderRadius.circular(18),
-          border: selected ? Border.all(color: Colors.teal.shade100) : null,
+          color: selected ? authPrimary : Colors.transparent,
+          borderRadius: BorderRadius.circular(17),
+          boxShadow: selected
+              ? [
+                  BoxShadow(
+                    color: authPrimary.withOpacity(0.24),
+                    blurRadius: 14,
+                    offset: const Offset(0, 7),
+                  ),
+                ]
+              : null,
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
               selected ? data.selectedIcon : data.icon,
-              color: selected ? authPrimary : Colors.blueGrey.shade400,
+              color: selected ? Colors.white : Colors.blueGrey.shade400,
               size: 22,
             ),
             const SizedBox(height: 3),
@@ -641,7 +654,7 @@ class _BottomNavItem extends StatelessWidget {
               child: Text(
                 data.label,
                 style: TextStyle(
-                  color: selected ? authPrimary : Colors.blueGrey.shade500,
+                  color: selected ? Colors.white : Colors.blueGrey.shade500,
                   fontSize: 11,
                   fontWeight: selected ? FontWeight.w900 : FontWeight.w700,
                 ),
@@ -1154,23 +1167,6 @@ class _MedicineTab extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 16),
-        FilledButton.icon(
-          style: FilledButton.styleFrom(
-            backgroundColor: authPrimary,
-            foregroundColor: Colors.white,
-            minimumSize: const Size.fromHeight(52),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-          ),
-          onPressed: onAddMedicine,
-          icon: const Icon(Icons.add),
-          label: const Text(
-            'Add Medicine',
-            style: TextStyle(fontWeight: FontWeight.w800),
-          ),
-        ),
-        const SizedBox(height: 22),
         if (medicines.isEmpty)
           const _EmptyMedicineInline()
         else
@@ -1203,101 +1199,18 @@ class _MedicineTab extends StatelessWidget {
   }
 }
 
-class _InventoryTab extends StatelessWidget {
-  final List<MedicationReminder> reminders;
-  final List<Medicine> medicines;
-
-  const _InventoryTab({
-    required this.reminders,
-    required this.medicines,
-  });
-
-  int get completed =>
-      reminders.where((reminder) => reminder.isCompleted).length;
-
-  int get delayed => reminders.where((reminder) => reminder.isDelayed).length;
-
-  int get waiting =>
-      reminders.length - completed - delayed;
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(18, 16, 18, 96),
-      children: [
-        const Text(
-          'Inventory',
-          style: TextStyle(
-            color: authInk,
-            fontSize: 28,
-            fontWeight: FontWeight.w900,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          'Quick overview of medicines and reminder activity.',
-          style: TextStyle(
-            color: Colors.blueGrey.shade600,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        const SizedBox(height: 18),
-        LayoutBuilder(
-          builder: (context, constraints) {
-            final crossAxisCount = constraints.maxWidth >= 560 ? 2 : 1;
-            final cards = [
-              _InventoryCardData(
-                icon: Icons.medication_outlined,
-                label: 'Medicines',
-                value: medicines.length.toString(),
-              ),
-              _InventoryCardData(
-                icon: Icons.notifications_active_outlined,
-                label: 'Reminders',
-                value: reminders.length.toString(),
-              ),
-              _InventoryCardData(
-                icon: Icons.check_circle_outline,
-                label: 'Completed',
-                value: completed.toString(),
-              ),
-              _InventoryCardData(
-                icon: Icons.schedule_outlined,
-                label: 'Waiting',
-                value: waiting.toString(),
-              ),
-              _InventoryCardData(
-                icon: Icons.warning_amber_outlined,
-                label: 'Delayed',
-                value: delayed.toString(),
-              ),
-            ];
-            return GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: cards.length,
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: crossAxisCount,
-                crossAxisSpacing: 12,
-                mainAxisSpacing: 12,
-                mainAxisExtent: 120,
-              ),
-              itemBuilder: (context, index) {
-                final card = cards[index];
-                return _InventorySummaryCard(card: card);
-              },
-            );
-          },
-        ),
-      ],
-    );
-  }
-}
-
 class _ProfileTab extends StatelessWidget {
   final String userName;
+  final String email;
+  final String age;
+  final String bloodType;
 
-  const _ProfileTab({required this.userName});
+  const _ProfileTab({
+    required this.userName,
+    required this.email,
+    required this.age,
+    required this.bloodType,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1314,53 +1227,172 @@ class _ProfileTab extends StatelessWidget {
         ),
         const SizedBox(height: 18),
         Container(
-          padding: const EdgeInsets.all(18),
+          padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: Colors.teal.shade50),
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(color: const Color(0xFFE2F3F0)),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 14,
-                offset: const Offset(0, 8),
+                color: authPrimary.withOpacity(0.08),
+                blurRadius: 18,
+                offset: const Offset(0, 9),
               ),
             ],
           ),
-          child: Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const CircleAvatar(
-                radius: 28,
-                backgroundColor: Color(0xFFEAF8F6),
-                child: Icon(Icons.person, color: authPrimary),
+              Row(
+                children: [
+                  const CircleAvatar(
+                    radius: 30,
+                    backgroundColor: Color(0xFFEAF8F6),
+                    child: Icon(Icons.person, color: authPrimary, size: 30),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          userName,
+                          style: const TextStyle(
+                            color: authInk,
+                            fontSize: 22,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                        Text(
+                          'MediTrack user',
+                          style: TextStyle(
+                            color: Colors.blueGrey.shade500,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      userName,
-                      style: const TextStyle(
-                        color: authInk,
-                        fontSize: 20,
-                        fontWeight: FontWeight.w900,
-                      ),
+              const SizedBox(height: 20),
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final useTwoColumns = constraints.maxWidth >= 520;
+                  final items = [
+                    _ProfileInfoData(
+                      icon: Icons.badge_outlined,
+                      label: 'Name',
+                      value: userName,
                     ),
-                    Text(
-                      'MediTrack user',
-                      style: TextStyle(
-                        color: Colors.blueGrey.shade500,
-                        fontWeight: FontWeight.w700,
-                      ),
+                    _ProfileInfoData(
+                      icon: Icons.email_outlined,
+                      label: 'Email',
+                      value: email,
                     ),
-                  ],
-                ),
+                    _ProfileInfoData(
+                      icon: Icons.cake_outlined,
+                      label: 'Age',
+                      value: age,
+                    ),
+                    _ProfileInfoData(
+                      icon: Icons.bloodtype_outlined,
+                      label: 'Blood type',
+                      value: bloodType,
+                    ),
+                  ];
+
+                  return GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: items.length,
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: useTwoColumns ? 2 : 1,
+                      crossAxisSpacing: 12,
+                      mainAxisSpacing: 12,
+                      mainAxisExtent: 86,
+                    ),
+                    itemBuilder: (context, index) {
+                      return _ProfileInfoTile(data: items[index]);
+                    },
+                  );
+                },
               ),
             ],
           ),
         ),
       ],
+    );
+  }
+}
+
+class _ProfileInfoData {
+  final IconData icon;
+  final String label;
+  final String value;
+
+  const _ProfileInfoData({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+}
+
+class _ProfileInfoTile extends StatelessWidget {
+  final _ProfileInfoData data;
+
+  const _ProfileInfoTile({required this.data});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF7FCFB),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFE2F3F0)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: const Color(0xFFEAF8F6),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(data.icon, color: authPrimary, size: 22),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  data.label,
+                  style: TextStyle(
+                    color: Colors.blueGrey.shade500,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  data.value,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: authInk,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -1488,78 +1520,6 @@ class _MedicineInlineCard extends StatelessWidget {
             tooltip: 'Delete',
             onPressed: onDelete,
             icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _InventoryCardData {
-  final IconData icon;
-  final String label;
-  final String value;
-
-  const _InventoryCardData({
-    required this.icon,
-    required this.label,
-    required this.value,
-  });
-}
-
-class _InventorySummaryCard extends StatelessWidget {
-  final _InventoryCardData card;
-
-  const _InventorySummaryCard({required this.card});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.teal.shade50),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 14,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: const Color(0xFFEAF8F6),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Icon(card.icon, color: authPrimary),
-          ),
-          const SizedBox(width: 14),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                card.value,
-                style: const TextStyle(
-                  color: authInk,
-                  fontSize: 24,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-              Text(
-                card.label,
-                style: TextStyle(
-                  color: Colors.blueGrey.shade500,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
           ),
         ],
       ),

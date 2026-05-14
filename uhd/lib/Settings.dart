@@ -1,9 +1,12 @@
- import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:uhd/Login_Screen.dart';
+import 'package:uhd/auth_widgets.dart';
 import 'package:uhd/main.dart';
 
 class Settings extends StatefulWidget {
-  const Settings({super.key});
+  final bool showScaffold;
+
+  const Settings({super.key, this.showScaffold = true});
 
   @override
   State<Settings> createState() => _SettingsState();
@@ -11,214 +14,577 @@ class Settings extends StatefulWidget {
 
 class _SettingsState extends State<Settings> {
   bool notificationsEnabled = true;
-  bool darkMode = false;
-
   String selectedLanguage = 'English';
 
   @override
   Widget build(BuildContext context) {
+    final body = _SettingsBody(
+      notificationsEnabled: notificationsEnabled,
+      selectedLanguage: selectedLanguage,
+      onNotificationsChanged: _setNotifications,
+      onThemeChanged: _setTheme,
+      onLanguageTap: _pickLanguage,
+      onFaqTap: _showFaq,
+      onContactTap: _showContactUs,
+      onDeleteAccount: _confirmDeleteAccount,
+      onLogout: _confirmLogout,
+    );
+
+    if (!widget.showScaffold) {
+      return body;
+    }
+
     return Scaffold(
-      appBar: AppBar(title: Text('Settings')),
-      body: ListView(//scroll haea
-        children: [
-          SwitchListTile(
-            title: Text('Enable Notifications'),
-            subtitle: Text('Turn medicine reminders on/off'),
-            value: notificationsEnabled,//doxy switch off and on bet
-            onChanged: (value) {
-              setState(() {
-                notificationsEnabled = value;
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: authPrimary,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        title: const Text(
+          'Settings',
+          style: TextStyle(fontWeight: FontWeight.w900),
+        ),
+      ),
+      body: body,
+    );
+  }
 
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          notificationsEnabled
-                              ? Icons.notifications_active
-                              : Icons.notifications_off,
-                          size: 20,
-                          color: Colors.white,
-                        ),
-                        Text(
-                          notificationsEnabled
-                              ? 'Notifications Enabled'
-                              : 'Notifications Disabled',
-                        ),
-                      ],
-                    ),
+  void _setNotifications(bool value) {
+    setState(() => notificationsEnabled = value);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          value ? 'Notifications enabled' : 'Notifications disabled',
+        ),
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: authPrimary,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      ),
+    );
+  }
+
+  void _setTheme(bool value) {
+    setState(() {
+      themeNotifier.value = value ? ThemeMode.dark : ThemeMode.light;
+    });
+  }
+
+  Future<void> _pickLanguage() async {
+    var tempLanguage = selectedLanguage;
+    final language = await showDialog<String>(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: const Text('Select language'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _LanguageOption(
+                    title: 'English',
+                    value: 'English',
+                    groupValue: tempLanguage,
+                    onChanged: (value) =>
+                        setDialogState(() => tempLanguage = value),
                   ),
-                );
-              });
-            },
-            secondary: Icon(Icons.notifications),
+                  _LanguageOption(
+                    title: 'Kurdish',
+                    value: 'Kurdish',
+                    groupValue: tempLanguage,
+                    onChanged: (value) =>
+                        setDialogState(() => tempLanguage = value),
+                  ),
+                  _LanguageOption(
+                    title: 'Arabic',
+                    value: 'Arabic',
+                    groupValue: tempLanguage,
+                    onChanged: (value) =>
+                        setDialogState(() => tempLanguage = value),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Cancel'),
+                ),
+                FilledButton(
+                  style: FilledButton.styleFrom(backgroundColor: authPrimary),
+                  onPressed: () => Navigator.pop(context, tempLanguage),
+                  child: const Text('Apply'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    if (language == null) return;
+    setState(() => selectedLanguage = language);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Language changed to $selectedLanguage'),
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: authPrimary,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      ),
+    );
+  }
+
+  Future<void> _confirmDeleteAccount() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Delete account?'),
+          content: const Text(
+            'Are you sure you want to delete your account? This action cannot be undone.',
           ),
-
-          SwitchListTile(
-            title: Text('Dark Mode'),
-            subtitle: Text('Better for night use'),
-            value: themeNotifier.value == ThemeMode.dark,
-            onChanged: (bool value) {
-              setState(() {
-                themeNotifier.value =
-                    value ? ThemeMode.dark : ThemeMode.light;
-              });
-            },
-            secondary: Icon(Icons.dark_mode),
-          ),
-
-          Divider(),
-
-          ListTile(
-            leading: Icon(Icons.language),
-            title: Text('Language'),
-            subtitle: Text(selectedLanguage),
-            trailing: Icon(Icons.arrow_forward_ios),
-            onTap: () {
-              showDialog(
-                context: context,
-                builder: (BuildContext context) {
-                  String tempLanguage = selectedLanguage;//gorawy katy bo halbzhardny zman
-
-                  return StatefulBuilder(
-                    builder: (context, setStateDialog) {
-                      return AlertDialog(
-                        title: Text('Select Language'),
-                        content: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            RadioListTile<String>(//halbzhardny zman
-                              title: Text('English'),
-                              value: 'English',
-                              groupValue: tempLanguage,
-                              onChanged: (value) {
-                                setStateDialog(() {
-                                  tempLanguage = value!;
-                                });
-                              },
-                            ),
-                            RadioListTile<String>(
-                              title: Text('کوردی'),
-                              value: 'Kurdish',
-                              groupValue: tempLanguage,
-                              onChanged: (value) {
-                                setStateDialog(() {
-                                  tempLanguage = value!;
-                                });
-                              },
-                            ),
-                            RadioListTile<String>(
-                              title: Text('عربي'),
-                              value: 'Arabic',
-                              groupValue: tempLanguage,
-                              onChanged: (value) {
-                                setStateDialog(() {
-                                  tempLanguage = value!;
-                                });
-                              },
-                            ),
-                          ],
-                        ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(context),
-                            child: Text('Cancel'),
-                          ),
-                          TextButton(//zmany halbzherdraw jeger aby
-                            onPressed: () {
-                              setState(() {
-                                selectedLanguage = tempLanguage;
-                              });
-
-                              Navigator.pop(context);
-
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                      'Language changed to $selectedLanguage'),//ka zmanek halabzheren awa peshan ayat
-                                ),
-                              );
-                            },
-                            child: Text('Apply'),
-                          ),
-                        ],
-                      );
-                    },
-                  );
-                },
-              );
-            },
-          ),
-
-          Divider(),
-
-          // 🗑️ DELETE ACCOUNT (ADDED)
-          ListTile(
-            leading: Icon(Icons.delete, color: Colors.red),
-            title: Text(
-              'Delete Account',
-              style: TextStyle(color: Colors.red),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel'),
             ),
-            onTap: () {
-              showDialog(
-                context: context,
-                builder: (BuildContext context) {
-                  return AlertDialog(
-                    title: Text('Delete Account'),
-                    content: Text(
-                        'Are you sure you want to delete your account? This action cannot be undone.'),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: Text('Cancel'),
-                      ),
-                      TextButton(
-                        onPressed: () {
-                          Navigator.pop(context);
-
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Account deleted successfully'),
-                            ),
-                          );
-
-                          Navigator.pushAndRemoveUntil(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) => LoginScreen()),
-                            (route) => false,
-                          );
-                        },
-                        child: Text(
-                          'Delete',
-                          style: TextStyle(color: Colors.red),
-                        ),
-                      ),
-                    ],
-                  );
-                },
-              );
-            },
-          ),
-
-          Divider(),
-
-          ListTile(
-            leading: const Icon(Icons.logout, color: Colors.red),
-            title: const Text(
-              'Logout',
-              style: TextStyle(color: Colors.red),
+            FilledButton(
+              style: FilledButton.styleFrom(backgroundColor: Colors.redAccent),
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Delete'),
             ),
-            onTap: () {
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (context) => LoginScreen()),
-              );
-            },
+          ],
+        );
+      },
+    );
+
+    if (confirmed != true || !mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text('Account deleted successfully'),
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: Colors.redAccent,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      ),
+    );
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (context) => const LoginScreen()),
+      (route) => false,
+    );
+  }
+
+  Future<void> _confirmLogout() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Logout?'),
+          content: const Text('Do you want to logout and return to login?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              style: FilledButton.styleFrom(backgroundColor: authPrimary),
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Logout'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed == true) {
+      _logout();
+    }
+  }
+
+  void _logout() {
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (context) => const LoginScreen()),
+      (route) => false,
+    );
+  }
+
+  void _showFaq() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('FAQ'),
+          content: const Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _DialogInfoLine(
+                title: 'Can I edit reminders?',
+                body: 'Yes, future reminders can be rescheduled.',
+              ),
+              SizedBox(height: 12),
+              _DialogInfoLine(
+                title: 'Can I add medicines without reminders?',
+                body: 'Yes, save medicines first and use them later.',
+              ),
+              SizedBox(height: 12),
+              _DialogInfoLine(
+                title: 'Is there a backend?',
+                body: 'Not yet. Data is temporary for now.',
+              ),
+            ],
+          ),
+          actions: [
+            FilledButton(
+              style: FilledButton.styleFrom(backgroundColor: authPrimary),
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Done'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showContactUs() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Contact us'),
+          content: const Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _DialogInfoLine(
+                title: 'Email',
+                body: 'support@meditrack.app',
+              ),
+              SizedBox(height: 12),
+              _DialogInfoLine(
+                title: 'Phone',
+                body: '+964 750 000 0000',
+              ),
+              SizedBox(height: 12),
+              _DialogInfoLine(
+                title: 'Hours',
+                body: 'Sunday to Thursday, 9 AM - 5 PM',
+              ),
+            ],
+          ),
+          actions: [
+            FilledButton(
+              style: FilledButton.styleFrom(backgroundColor: authPrimary),
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Done'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _SettingsBody extends StatelessWidget {
+  final bool notificationsEnabled;
+  final String selectedLanguage;
+  final ValueChanged<bool> onNotificationsChanged;
+  final ValueChanged<bool> onThemeChanged;
+  final VoidCallback onLanguageTap;
+  final VoidCallback onFaqTap;
+  final VoidCallback onContactTap;
+  final VoidCallback onDeleteAccount;
+  final VoidCallback onLogout;
+
+  const _SettingsBody({
+    required this.notificationsEnabled,
+    required this.selectedLanguage,
+    required this.onNotificationsChanged,
+    required this.onThemeChanged,
+    required this.onLanguageTap,
+    required this.onFaqTap,
+    required this.onContactTap,
+    required this.onDeleteAccount,
+    required this.onLogout,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(18, 16, 18, 96),
+      children: [
+        const Text(
+          'Settings',
+          style: TextStyle(
+            color: authInk,
+            fontSize: 28,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'Manage reminders, display, and account options.',
+          style: TextStyle(
+            color: Colors.blueGrey.shade600,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 18),
+        _SettingsSection(
+          children: [
+            _SettingsSwitchTile(
+              icon: Icons.notifications_active_outlined,
+              title: 'Enable notifications',
+              subtitle: 'Turn medicine reminders on or off',
+              value: notificationsEnabled,
+              onChanged: onNotificationsChanged,
+            ),
+            _SettingsSwitchTile(
+              icon: Icons.dark_mode_outlined,
+              title: 'Dark mode',
+              subtitle: 'Better for night use',
+              value: themeNotifier.value == ThemeMode.dark,
+              onChanged: onThemeChanged,
+            ),
+          ],
+        ),
+        const SizedBox(height: 14),
+        _SettingsSection(
+          children: [
+            _SettingsActionTile(
+              icon: Icons.language_outlined,
+              title: 'Language',
+              subtitle: selectedLanguage,
+              trailing: Icons.chevron_right,
+              onTap: onLanguageTap,
+            ),
+            _SettingsActionTile(
+              icon: Icons.quiz_outlined,
+              title: 'FAQ',
+              subtitle: 'Common app questions',
+              trailing: Icons.chevron_right,
+              onTap: onFaqTap,
+            ),
+            _SettingsActionTile(
+              icon: Icons.support_agent_outlined,
+              title: 'Contact us',
+              subtitle: 'Get help or send feedback',
+              trailing: Icons.chevron_right,
+              onTap: onContactTap,
+            ),
+          ],
+        ),
+        const SizedBox(height: 14),
+        _SettingsSection(
+          children: [
+            _SettingsActionTile(
+              icon: Icons.logout,
+              title: 'Logout',
+              subtitle: 'Return to the login screen',
+              danger: true,
+              onTap: onLogout,
+            ),
+            _SettingsActionTile(
+              icon: Icons.delete_outline,
+              title: 'Delete account',
+              subtitle: 'Remove your account from this device',
+              danger: true,
+              onTap: onDeleteAccount,
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _SettingsSection extends StatelessWidget {
+  final List<Widget> children;
+
+  const _SettingsSection({required this.children});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFE2F3F0)),
+        boxShadow: [
+          BoxShadow(
+            color: authPrimary.withOpacity(0.08),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
+      child: Column(children: children),
+    );
+  }
+}
+
+class _SettingsSwitchTile extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  const _SettingsSwitchTile({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.value,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SwitchListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      activeColor: authPrimary,
+      secondary: _SettingsIcon(icon: icon),
+      title: Text(
+        title,
+        style: const TextStyle(color: authInk, fontWeight: FontWeight.w900),
+      ),
+      subtitle: Text(
+        subtitle,
+        style: TextStyle(
+          color: Colors.blueGrey.shade500,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+      value: value,
+      onChanged: onChanged,
+    );
+  }
+}
+
+class _SettingsActionTile extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final IconData? trailing;
+  final bool danger;
+  final VoidCallback onTap;
+
+  const _SettingsActionTile({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+    this.trailing,
+    this.danger = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = danger ? Colors.redAccent : authPrimary;
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      leading: _SettingsIcon(icon: icon, color: color),
+      title: Text(
+        title,
+        style: TextStyle(
+          color: danger ? Colors.redAccent : authInk,
+          fontWeight: FontWeight.w900,
+        ),
+      ),
+      subtitle: Text(
+        subtitle,
+        style: TextStyle(
+          color: Colors.blueGrey.shade500,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+      trailing: trailing == null
+          ? null
+          : Icon(trailing, color: Colors.blueGrey.shade400),
+      onTap: onTap,
+    );
+  }
+}
+
+class _SettingsIcon extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+
+  const _SettingsIcon({required this.icon, this.color = authPrimary});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 42,
+      height: 42,
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.11),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Icon(icon, color: color, size: 22),
+    );
+  }
+}
+
+class _DialogInfoLine extends StatelessWidget {
+  final String title;
+  final String body;
+
+  const _DialogInfoLine({
+    required this.title,
+    required this.body,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: const TextStyle(
+            color: authInk,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          body,
+          style: TextStyle(
+            color: Colors.blueGrey.shade600,
+            fontWeight: FontWeight.w600,
+            height: 1.3,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _LanguageOption extends StatelessWidget {
+  final String title;
+  final String value;
+  final String groupValue;
+  final ValueChanged<String> onChanged;
+
+  const _LanguageOption({
+    required this.title,
+    required this.value,
+    required this.groupValue,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return RadioListTile<String>(
+      activeColor: authPrimary,
+      title: Text(title),
+      value: value,
+      groupValue: groupValue,
+      onChanged: (value) {
+        if (value != null) onChanged(value);
+      },
     );
   }
 }

@@ -18,7 +18,12 @@ class Midterm extends StatelessWidget {
           debugShowCheckedModeBanner: false,
           darkTheme: ThemeData.dark(),
           themeMode: currentMode,
-          home: HomePage(userName: 'User'),
+          home: HomePage(
+            userName: 'User',
+            email: 'user@example.com',
+            age: 'Not added',
+            bloodType: 'Not added',
+          ),
         );
       },
     );
