@@ -4,7 +4,7 @@ import 'package:uhd/AddReminderPage.dart';
 import 'package:uhd/auth_widgets.dart';
 import 'package:uhd/med_models.dart';
 
-enum ReminderFilter { all, completed, delayed, waiting }
+enum ReminderFilter { all, completed, delayed, waiting, notTaken }
 
 class HomePage extends StatefulWidget {
   final String userName;
@@ -36,9 +36,12 @@ class _HomePageState extends State<HomePage> {
             .where(
               (reminder) =>
                   reminder.status == ReminderStatus.waiting &&
-                  !reminder.isDelayed,
+                  !reminder.isDelayed &&
+                  !reminder.isNotTaken,
             )
             .toList();
+      case ReminderFilter.notTaken:
+        return dayReminders.where((reminder) => reminder.isNotTaken).toList();
       case ReminderFilter.all:
         return dayReminders;
     }
@@ -60,9 +63,12 @@ class _HomePageState extends State<HomePage> {
             .where(
               (reminder) =>
                   reminder.status == ReminderStatus.waiting &&
-                  !reminder.isDelayed,
+                  !reminder.isDelayed &&
+                  !reminder.isNotTaken,
             )
             .length;
+      case ReminderFilter.notTaken:
+        return dayReminders.where((reminder) => reminder.isNotTaken).length;
     }
   }
 
@@ -70,6 +76,26 @@ class _HomePageState extends State<HomePage> {
     return first.year == second.year &&
         first.month == second.month &&
         first.day == second.day;
+  }
+
+  bool _isDateBeforeToday(DateTime date) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final checked = DateTime(date.year, date.month, date.day);
+    return checked.isBefore(today);
+  }
+
+  bool _isReminderInPast(MedicationReminder reminder) {
+    return reminder.scheduledAt.isBefore(DateTime.now());
+  }
+
+  void _setSelectedDate(DateTime date) {
+    setState(() {
+      _selectedDate = date;
+      if (!_isDateBeforeToday(date) && _filter == ReminderFilter.notTaken) {
+        _filter = ReminderFilter.all;
+      }
+    });
   }
 
   void _saveMedicine(Medicine medicine) {
@@ -229,7 +255,7 @@ class _HomePageState extends State<HomePage> {
       lastDate: DateTime.now().add(const Duration(days: 365)),
     );
     if (date != null) {
-      setState(() => _selectedDate = date);
+      _setSelectedDate(date);
     }
   }
 
@@ -303,9 +329,12 @@ class _HomePageState extends State<HomePage> {
 
   Widget _HomeTab() {
     final reminders = _filteredReminders;
+    final isPastDate = _isDateBeforeToday(_selectedDate);
+    final showSkippedEmptyState =
+        _filter == ReminderFilter.notTaken && isPastDate;
 
     return CustomScrollView(
-        slivers: [
+      slivers: [
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(18, 6, 18, 0),
@@ -324,16 +353,14 @@ class _HomePageState extends State<HomePage> {
               child: _SelectedDateCard(
                 selectedDate: _selectedDate,
                 onPrevious: () {
-                  setState(() {
-                    _selectedDate = _selectedDate.subtract(
-                      const Duration(days: 1),
-                    );
-                  });
+                  _setSelectedDate(
+                    _selectedDate.subtract(const Duration(days: 1)),
+                  );
                 },
                 onNext: () {
-                  setState(() {
-                    _selectedDate = _selectedDate.add(const Duration(days: 1));
-                  });
+                  _setSelectedDate(
+                    _selectedDate.add(const Duration(days: 1)),
+                  );
                 },
                 onPickDate: _pickSelectedDate,
               ),
@@ -345,6 +372,7 @@ class _HomePageState extends State<HomePage> {
               child: _FilterBar(
                 selected: _filter,
                 countFor: _countFor,
+                showNotTaken: isPastDate,
                 onSelected: (filter) => setState(() => _filter = filter),
               ),
             ),
@@ -358,6 +386,12 @@ class _HomePageState extends State<HomePage> {
                   hasMedicines: _medicines.isNotEmpty,
                   onOpenMedicines: _openMedicines,
                   onAddReminder: _openAddReminder,
+                  title: showSkippedEmptyState
+                      ? 'No medicine has been skipped'
+                      : null,
+                  message: showSkippedEmptyState
+                      ? 'Everything was handled on this day.'
+                      : null,
                 ),
               ),
             )
@@ -374,11 +408,16 @@ class _HomePageState extends State<HomePage> {
                       final reminder = reminders[index];
                       return _ReminderCard(
                         reminder: reminder,
-                        onTook: () => _markTook(reminder),
-                        onReschedule: reminder.isCompleted
+                        onTook: _isReminderInPast(reminder)
+                            ? null
+                            : () => _markTook(reminder),
+                        onReschedule:
+                            reminder.isCompleted || _isReminderInPast(reminder)
                             ? null
                             : () => _reschedule(reminder),
-                        onDelete: () => _deleteReminder(reminder),
+                        onDelete: _isReminderInPast(reminder)
+                            ? null
+                            : () => _deleteReminder(reminder),
                       );
                     }, childCount: reminders.length),
                     gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
@@ -391,8 +430,8 @@ class _HomePageState extends State<HomePage> {
                 },
               ),
             ),
-        ],
-      );
+      ],
+    );
   }
 
   void _openAddMedicineFromTab() {
@@ -745,11 +784,13 @@ class _QuickAction extends StatelessWidget {
 class _FilterBar extends StatelessWidget {
   final ReminderFilter selected;
   final int Function(ReminderFilter filter) countFor;
+  final bool showNotTaken;
   final ValueChanged<ReminderFilter> onSelected;
 
   const _FilterBar({
     required this.selected,
     required this.countFor,
+    required this.showNotTaken,
     required this.onSelected,
   });
 
@@ -760,6 +801,7 @@ class _FilterBar extends StatelessWidget {
       (ReminderFilter.completed, 'Complete'),
       (ReminderFilter.delayed, 'Delayed'),
       (ReminderFilter.waiting, 'Waiting'),
+      if (showNotTaken) (ReminderFilter.notTaken, 'Not taken'),
     ];
 
     return SingleChildScrollView(
@@ -796,9 +838,9 @@ class _FilterBar extends StatelessWidget {
 
 class _ReminderCard extends StatelessWidget {
   final MedicationReminder reminder;
-  final VoidCallback onTook;
+  final VoidCallback? onTook;
   final VoidCallback? onReschedule;
-  final VoidCallback onDelete;
+  final VoidCallback? onDelete;
 
   const _ReminderCard({
     required this.reminder,
@@ -809,24 +851,28 @@ class _ReminderCard extends StatelessWidget {
 
   String _statusLabel() {
     if (reminder.isCompleted) return 'Complete';
+    if (reminder.isNotTaken) return 'Not taken';
     if (reminder.isDelayed) return 'Delayed';
     return 'Waiting';
   }
 
   Color _statusColor() {
     if (reminder.isCompleted) return authPrimary;
+    if (reminder.isNotTaken) return Colors.redAccent;
     if (reminder.isDelayed) return Colors.redAccent;
     return const Color(0xFFB7791F);
   }
 
   Color _statusBackground() {
     if (reminder.isCompleted) return const Color(0xFFEAF8F6);
+    if (reminder.isNotTaken) return const Color(0xFFFFECEC);
     if (reminder.isDelayed) return const Color(0xFFFFECEC);
     return const Color(0xFFFFF6E5);
   }
 
   IconData _statusIcon() {
     if (reminder.isCompleted) return Icons.check_circle_outline;
+    if (reminder.isNotTaken) return Icons.cancel_outlined;
     if (reminder.isDelayed) return Icons.warning_amber_outlined;
     return Icons.schedule_outlined;
   }
@@ -879,9 +925,9 @@ class _ReminderCard extends StatelessWidget {
               IconButton(
                 tooltip: 'Delete',
                 onPressed: onDelete,
-                icon: const Icon(
+                icon: Icon(
                   Icons.delete_outline,
-                  color: Colors.redAccent,
+                  color: onDelete == null ? Colors.grey : Colors.redAccent,
                   size: 22,
                 ),
               ),
@@ -949,7 +995,8 @@ class _ReminderCard extends StatelessWidget {
                   label: const Text('Took'),
                   style: FilledButton.styleFrom(
                     backgroundColor: authPrimary,
-                    disabledBackgroundColor: Colors.teal.shade100,
+                    disabledBackgroundColor: Colors.grey.shade200,
+                    disabledForegroundColor: Colors.grey.shade500,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
                     ),
@@ -964,6 +1011,7 @@ class _ReminderCard extends StatelessWidget {
                   label: const Text('Reschedule'),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: authPrimary,
+                    disabledForegroundColor: Colors.grey.shade500,
                     side: BorderSide(color: Colors.teal.shade100),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
@@ -1010,11 +1058,15 @@ class _EmptyReminderState extends StatelessWidget {
   final bool hasMedicines;
   final VoidCallback onOpenMedicines;
   final VoidCallback onAddReminder;
+  final String? title;
+  final String? message;
 
   const _EmptyReminderState({
     required this.hasMedicines,
     required this.onOpenMedicines,
     required this.onAddReminder,
+    this.title,
+    this.message,
   });
 
   @override
@@ -1037,9 +1089,9 @@ class _EmptyReminderState extends StatelessWidget {
               size: 48,
             ),
             const SizedBox(height: 12),
-            const Text(
-              'No reminders here',
-              style: TextStyle(
+            Text(
+              title ?? 'No reminders here',
+              style: const TextStyle(
                 color: authInk,
                 fontSize: 20,
                 fontWeight: FontWeight.w900,
@@ -1047,9 +1099,10 @@ class _EmptyReminderState extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             Text(
-              hasMedicines
-                  ? 'Create a reminder from one of your saved medicines.'
-                  : 'Add medicines first, then create reminders from them.',
+              message ??
+                  (hasMedicines
+                      ? 'Create a reminder from one of your saved medicines.'
+                      : 'Add medicines first, then create reminders from them.'),
               textAlign: TextAlign.center,
               style: TextStyle(color: Colors.blueGrey.shade500),
             ),

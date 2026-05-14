@@ -49,10 +49,31 @@ class MedicationReminder {
     this.isRescheduled = false,
   });
 
-  bool get isDelayed =>
-      status == ReminderStatus.waiting && scheduledAt.isBefore(DateTime.now());
+  bool get isDelayed {
+    final now = DateTime.now();
+    return status == ReminderStatus.waiting &&
+        _isSameDay(scheduledAt, now) &&
+        scheduledAt.isBefore(now);
+  }
+
+  bool get isNotTaken {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final scheduledDay = DateTime(
+      scheduledAt.year,
+      scheduledAt.month,
+      scheduledAt.day,
+    );
+    return status == ReminderStatus.waiting && scheduledDay.isBefore(today);
+  }
 
   bool get isCompleted => status == ReminderStatus.completed;
 
   TimeOfDay get time => TimeOfDay.fromDateTime(scheduledAt);
+
+  bool _isSameDay(DateTime first, DateTime second) {
+    return first.year == second.year &&
+        first.month == second.month &&
+        first.day == second.day;
+  }
 }
