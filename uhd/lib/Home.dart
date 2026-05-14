@@ -108,22 +108,19 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
-  void _markTook(MedicationReminder reminder) {
+  Future<void> _markTook(MedicationReminder reminder) async {
+    final confirmed = await _confirmAction(
+      title: 'Mark as took?',
+      message: 'Do you want to mark this reminder as taken?',
+      confirmLabel: 'Yes, Took',
+      confirmColor: authPrimary,
+    );
+    if (!confirmed) return;
+
     setState(() => reminder.status = ReminderStatus.completed);
   }
 
   Future<void> _reschedule(MedicationReminder reminder) async {
-    final date = await showDatePicker(
-      context: context,
-      initialDate: reminder.scheduledAt.isBefore(DateTime.now())
-          ? DateTime.now()
-          : reminder.scheduledAt,
-      firstDate: DateTime.now().subtract(const Duration(days: 1)),
-      lastDate: DateTime.now().add(const Duration(days: 365)),
-    );
-    if (date == null) return;
-
-    if (!mounted) return;
     final time = await showTimePicker(
       context: context,
       initialTime: TimeOfDay.fromDateTime(reminder.scheduledAt),
@@ -132,14 +129,55 @@ class _HomePageState extends State<HomePage> {
 
     setState(() {
       reminder.scheduledAt = DateTime(
-        date.year,
-        date.month,
-        date.day,
+        reminder.scheduledAt.year,
+        reminder.scheduledAt.month,
+        reminder.scheduledAt.day,
         time.hour,
         time.minute,
       );
       reminder.status = ReminderStatus.waiting;
     });
+  }
+
+  Future<void> _deleteReminder(MedicationReminder reminder) async {
+    final confirmed = await _confirmAction(
+      title: 'Delete reminder?',
+      message: 'Do you want to delete this reminder?',
+      confirmLabel: 'Delete',
+      confirmColor: Colors.redAccent,
+    );
+    if (!confirmed) return;
+
+    setState(() => _reminders.remove(reminder));
+  }
+
+  Future<bool> _confirmAction({
+    required String title,
+    required String message,
+    required String confirmLabel,
+    required Color confirmColor,
+  }) async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text(title),
+          content: Text(message),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              style: FilledButton.styleFrom(backgroundColor: confirmColor),
+              onPressed: () => Navigator.pop(context, true),
+              child: Text(confirmLabel),
+            ),
+          ],
+        );
+      },
+    );
+    return result ?? false;
   }
 
   void _openMedicines() {
@@ -185,20 +223,24 @@ class _HomePageState extends State<HomePage> {
 
     return Scaffold(
       backgroundColor: Colors.white,
-      drawer: _HomeDrawer(userName: widget.userName),
+      drawer: _HomeDrawer(
+        userName: widget.userName,
+        onOpenMedicines: _openMedicines,
+      ),
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        iconTheme: const IconThemeData(color: Colors.white),
+        backgroundColor: authPrimary,
         foregroundColor: authInk,
         elevation: 0,
         title: const Text(
           'MedReminder',
-          style: TextStyle(fontWeight: FontWeight.w900),
+          style: TextStyle(fontWeight: FontWeight.w900, color: Colors.white),
         ),
         actions: [
           IconButton(
             tooltip: 'My Medicines',
             onPressed: _openMedicines,
-            icon: const Icon(Icons.inventory_2_outlined),
+            icon: const Icon(Icons.inventory_2_outlined, color: Colors.white),
           ),
         ],
       ),
@@ -237,9 +279,7 @@ class _HomePageState extends State<HomePage> {
                 },
                 onNext: () {
                   setState(() {
-                    _selectedDate = _selectedDate.add(
-                      const Duration(days: 1),
-                    );
+                    _selectedDate = _selectedDate.add(const Duration(days: 1));
                   });
                 },
                 onPickDate: _pickSelectedDate,
@@ -271,22 +311,31 @@ class _HomePageState extends State<HomePage> {
           else
             SliverPadding(
               padding: const EdgeInsets.fromLTRB(18, 0, 18, 96),
-              sliver: SliverList(
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) {
-                    if (index.isOdd) return const SizedBox(height: 12);
-                    final reminder = reminders[index ~/ 2];
-                    return _ReminderCard(
-                      reminder: reminder,
-                      onTook: () => _markTook(reminder),
-                      onReschedule: () => _reschedule(reminder),
-                      onDelete: () {
-                        setState(() => _reminders.remove(reminder));
-                      },
-                    );
-                  },
-                  childCount: reminders.length * 2 - 1,
-                ),
+              sliver: SliverLayoutBuilder(
+                builder: (context, constraints) {
+                  final crossAxisCount = constraints.crossAxisExtent >= 560
+                      ? 2
+                      : 1;
+                  return SliverGrid(
+                    delegate: SliverChildBuilderDelegate((context, index) {
+                      final reminder = reminders[index];
+                      return _ReminderCard(
+                        reminder: reminder,
+                        onTook: () => _markTook(reminder),
+                        onReschedule: reminder.isCompleted
+                            ? null
+                            : () => _reschedule(reminder),
+                        onDelete: () => _deleteReminder(reminder),
+                      );
+                    }, childCount: reminders.length),
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: crossAxisCount,
+                      crossAxisSpacing: 12,
+                      mainAxisSpacing: 12,
+                      mainAxisExtent: 285,
+                    ),
+                  );
+                },
               ),
             ),
         ],
@@ -560,7 +609,7 @@ class _FilterBar extends StatelessWidget {
 class _ReminderCard extends StatelessWidget {
   final MedicationReminder reminder;
   final VoidCallback onTook;
-  final VoidCallback onReschedule;
+  final VoidCallback? onReschedule;
   final VoidCallback onDelete;
 
   const _ReminderCard({
@@ -611,7 +660,10 @@ class _ReminderCard extends StatelessWidget {
                   color: const Color(0xFFEAF8F6),
                   borderRadius: BorderRadius.circular(15),
                 ),
-                child: const Icon(Icons.medication_outlined, color: authPrimary),
+                child: const Icon(
+                  Icons.medication_outlined,
+                  color: authPrimary,
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -629,7 +681,11 @@ class _ReminderCard extends StatelessWidget {
               IconButton(
                 tooltip: 'Delete',
                 onPressed: onDelete,
-                icon: const Icon(Icons.close, size: 20),
+                icon: const Icon(
+                  Icons.delete_outline,
+                  color: Colors.redAccent,
+                  size: 22,
+                ),
               ),
             ],
           ),
@@ -808,8 +864,9 @@ class _EmptyReminderState extends StatelessWidget {
 
 class _HomeDrawer extends StatelessWidget {
   final String userName;
+  final VoidCallback onOpenMedicines;
 
-  const _HomeDrawer({required this.userName});
+  const _HomeDrawer({required this.userName, required this.onOpenMedicines});
 
   @override
   Widget build(BuildContext context) {
@@ -836,6 +893,19 @@ class _HomeDrawer extends StatelessWidget {
                 ),
               ],
             ),
+          ),
+          ListTile(
+            leading: const Icon(Icons.home_outlined),
+            title: const Text('Home'),
+            onTap: () => Navigator.pop(context),
+          ),
+          ListTile(
+            leading: const Icon(Icons.inventory_2_outlined),
+            title: const Text('My Medicines'),
+            onTap: () {
+              Navigator.pop(context);
+              onOpenMedicines();
+            },
           ),
           ListTile(
             leading: const Icon(Icons.settings),

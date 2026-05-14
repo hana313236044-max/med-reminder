@@ -134,22 +134,20 @@ class _AddReminderPageState extends State<AddReminderPage> {
     var idSeed = DateTime.now().microsecondsSinceEpoch;
 
     for (final date in dates) {
-      for (var dose = 0; dose < _quantity; dose++) {
-        records.add(
-          MedicationReminder(
-            id: idSeed++,
-            medicineId: medicine.id,
-            medicineName: medicine.name,
-            medicineCategory: medicine.category,
-            medicineForm: medicine.form,
-            scheduledAt: date,
-            quantity: 1,
-            quantityUnit: _quantityUnit,
-            scheduleLabel: label,
-            notes: notes.isEmpty ? null : notes,
-          ),
-        );
-      }
+      records.add(
+        MedicationReminder(
+          id: idSeed++,
+          medicineId: medicine.id,
+          medicineName: medicine.name,
+          medicineCategory: medicine.category,
+          medicineForm: medicine.form,
+          scheduledAt: date,
+          quantity: _quantity,
+          quantityUnit: _quantityUnit,
+          scheduleLabel: label,
+          notes: notes.isEmpty ? null : notes,
+        ),
+      );
     }
 
     return records;

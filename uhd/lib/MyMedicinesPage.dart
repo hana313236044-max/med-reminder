@@ -30,34 +30,28 @@ class _MyMedicinesPageState extends State<MyMedicinesPage> {
     setState(() {});
   }
 
+  void _openAddMedicine() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => AddMedicinePage(onSaveMedicine: _saveMedicine),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: authPrimary,
         foregroundColor: authInk,
         elevation: 0,
         title: const Text(
           'My Medicines',
-          style: TextStyle(fontWeight: FontWeight.w900),
+          style: TextStyle(fontWeight: FontWeight.w900, color: Colors.white),
         ),
-        actions: [
-          IconButton(
-            tooltip: 'Add medicine',
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => AddMedicinePage(
-                    onSaveMedicine: _saveMedicine,
-                  ),
-                ),
-              );
-            },
-            icon: const Icon(Icons.add),
-          ),
-        ],
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: SafeArea(
         child: ListView(
@@ -79,28 +73,61 @@ class _MyMedicinesPageState extends State<MyMedicinesPage> {
                 fontWeight: FontWeight.w700,
               ),
             ),
+            const SizedBox(height: 16),
+            FilledButton.icon(
+              style: FilledButton.styleFrom(
+                backgroundColor: authPrimary,
+                foregroundColor: Colors.white,
+                minimumSize: const Size.fromHeight(52),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+              onPressed: _openAddMedicine,
+              icon: const Icon(Icons.add),
+              label: const Text(
+                'Add Medicine',
+                style: TextStyle(fontWeight: FontWeight.w800),
+              ),
+            ),
             const SizedBox(height: 22),
             if (widget.medicines.isEmpty)
               const _EmptyMedicines()
             else
-              for (final medicine in widget.medicines) ...[
-                _MedicineCard(
-                  medicine: medicine,
-                  onEdit: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => AddMedicinePage(
-                          medicine: medicine,
-                          onSaveMedicine: _saveMedicine,
-                        ),
-                      ),
-                    );
-                  },
-                  onDelete: () => _deleteMedicine(medicine.id),
-                ),
-                const SizedBox(height: 12),
-              ],
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final crossAxisCount = constraints.maxWidth >= 560 ? 2 : 1;
+                  return GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: widget.medicines.length,
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: crossAxisCount,
+                      crossAxisSpacing: 12,
+                      mainAxisSpacing: 12,
+                      mainAxisExtent: 190,
+                    ),
+                    itemBuilder: (context, index) {
+                      final medicine = widget.medicines[index];
+                      return _MedicineCard(
+                        medicine: medicine,
+                        onEdit: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => AddMedicinePage(
+                                medicine: medicine,
+                                onSaveMedicine: _saveMedicine,
+                              ),
+                            ),
+                          );
+                        },
+                        onDelete: () => _deleteMedicine(medicine.id),
+                      );
+                    },
+                  );
+                },
+              ),
           ],
         ),
       ),
@@ -123,7 +150,11 @@ class _EmptyMedicines extends StatelessWidget {
       ),
       child: Column(
         children: [
-          Icon(Icons.medication_outlined, size: 42, color: Colors.teal.shade700),
+          Icon(
+            Icons.medication_outlined,
+            size: 42,
+            color: Colors.teal.shade700,
+          ),
           const SizedBox(height: 10),
           const Text(
             'No medicines saved yet',
@@ -173,6 +204,7 @@ class _MedicineCard extends StatelessWidget {
         ],
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
             width: 50,
@@ -190,6 +222,8 @@ class _MedicineCard extends StatelessWidget {
               children: [
                 Text(
                   medicine.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     color: authInk,
                     fontSize: 17,
@@ -210,6 +244,8 @@ class _MedicineCard extends StatelessWidget {
                   const SizedBox(height: 8),
                   Text(
                     medicine.notes!,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(color: Colors.blueGrey.shade500),
                   ),
                 ],
