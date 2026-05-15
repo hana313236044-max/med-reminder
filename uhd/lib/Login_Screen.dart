@@ -141,18 +141,10 @@ class _LoginScreenState extends State<LoginScreen>
     if (value.isEmpty) {
       return "Password is required";
     }
-    if (!_hasValidPassword(value)) {
-      return "Use 6+ chars with upper, lower, number, and symbol";
+    if (value.length < 6) {
+      return "Password must be 6 or more characters";
     }
     return null;
-  }
-
-  bool _hasValidPassword(String value) {
-    return value.length >= 6 &&
-        RegExp(r'[A-Z]').hasMatch(value) &&
-        RegExp(r'[a-z]').hasMatch(value) &&
-        RegExp(r'[0-9]').hasMatch(value) &&
-        RegExp(r'[^A-Za-z0-9]').hasMatch(value);
   }
 
   String _authErrorMessage(FirebaseAuthException error) {
