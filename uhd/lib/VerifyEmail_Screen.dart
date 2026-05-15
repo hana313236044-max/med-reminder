@@ -1,19 +1,20 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:uhd/Home.dart';
+import 'package:uhd/auth_gate.dart';
 import 'package:uhd/auth_widgets.dart';
 
 class VerifyEmailScreen extends StatefulWidget {
-  final String userName;
+  final String? userName;
   final String email;
-  final String age;
-  final String bloodType;
+  final String? age;
+  final String? bloodType;
 
   const VerifyEmailScreen({
     super.key,
-    required this.userName,
+    this.userName,
     required this.email,
-    required this.age,
-    required this.bloodType,
+    this.age,
+    this.bloodType,
   });
 
   @override
@@ -22,6 +23,9 @@ class VerifyEmailScreen extends StatefulWidget {
 
 class _VerifyEmailScreenState extends State<VerifyEmailScreen>
     with SingleTickerProviderStateMixin {
+  bool _isChecking = false;
+  bool _isResending = false;
+
   late final AnimationController _animationController;
   late final Animation<double> _fadeAnimation;
   late final Animation<Offset> _slideAnimation;
@@ -50,17 +54,65 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen>
     _animationController.forward();
   }
 
-  void _verifyNow() {
-    Navigator.pushReplacement(
+  Future<void> _checkVerification() async {
+    if (_isChecking) return;
+
+    setState(() => _isChecking = true);
+    try {
+      await FirebaseAuth.instance.currentUser?.reload();
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null && user.emailVerified) {
+        if (!mounted) return;
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (_) => const AuthGate()),
+          (route) => false,
+        );
+        return;
+      }
+
+      if (!mounted) return;
+      showAuthMessage(
+        context,
+        'Email is not verified yet. Check your inbox and try again.',
+        backgroundColor: Colors.redAccent,
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isChecking = false);
+      }
+    }
+  }
+
+  Future<void> _resendEmail() async {
+    if (_isResending) return;
+
+    setState(() => _isResending = true);
+    try {
+      await FirebaseAuth.instance.currentUser?.sendEmailVerification();
+      if (!mounted) return;
+      showAuthMessage(context, "Verification email resent");
+    } on FirebaseAuthException catch (error) {
+      if (!mounted) return;
+      showAuthMessage(
+        context,
+        error.message ?? 'Could not resend verification email',
+        backgroundColor: Colors.redAccent,
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isResending = false);
+      }
+    }
+  }
+
+  Future<void> _backToLogin() async {
+    await FirebaseAuth.instance.signOut();
+    if (!mounted) return;
+    Navigator.pushAndRemoveUntil(
       context,
-      MaterialPageRoute(
-        builder: (_) => HomePage(
-          userName: widget.userName,
-          email: widget.email,
-          age: widget.age,
-          bloodType: widget.bloodType,
-        ),
-      ),
+      MaterialPageRoute(builder: (_) => const AuthGate()),
+      (route) => false,
     );
   }
 
@@ -108,7 +160,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen>
                       ),
                       const SizedBox(height: 6),
                       Text(
-                        "No backend yet, so Verify Now will continue to Home.",
+                        "Open the link in your inbox, then return here and check verification.",
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           color: Colors.blueGrey.shade500,
@@ -120,17 +172,15 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen>
                 ),
                 const SizedBox(height: 22),
                 AuthPrimaryButton(
-                  label: "Verify Now",
+                  label: _isChecking ? "Checking..." : "I Verified My Email",
                   icon: Icons.check_circle_outline,
-                  onPressed: _verifyNow,
+                  onPressed: _checkVerification,
                 ),
                 const SizedBox(height: 10),
                 OutlinedButton.icon(
-                  onPressed: () {
-                    showAuthMessage(context, "Verification email resent");
-                  },
+                  onPressed: _resendEmail,
                   icon: const Icon(Icons.refresh),
-                  label: const Text("Resend Email"),
+                  label: Text(_isResending ? "Resending..." : "Resend Email"),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: authPrimary,
                     minimumSize: const Size.fromHeight(52),
@@ -142,9 +192,9 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen>
                 ),
                 const SizedBox(height: 8),
                 TextButton(
-                  onPressed: () => Navigator.pop(context),
+                  onPressed: _backToLogin,
                   child: const Text(
-                    "Back",
+                    "Back to login",
                     style: TextStyle(color: authPrimary),
                   ),
                 ),

@@ -1,7 +1,9 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:uhd/ContactUs.dart';
 import 'package:uhd/FAQ.dart';
-import 'package:uhd/Login_Screen.dart';
+import 'package:uhd/auth_gate.dart';
 import 'package:uhd/auth_widgets.dart';
 import 'package:uhd/main.dart';
 
@@ -160,20 +162,38 @@ class _SettingsState extends State<Settings> {
       },
     );
 
-    if (confirmed != true || !mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text('Account deleted successfully'),
-        behavior: SnackBarBehavior.floating,
+    if (confirmed != true) return;
+
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      if (!mounted) return;
+      await _logout();
+      return;
+    }
+
+    try {
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .delete();
+      await user.delete();
+      if (!mounted) return;
+      showAuthMessage(
+        context,
+        'Account deleted successfully',
         backgroundColor: Colors.redAccent,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-      ),
-    );
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(builder: (context) => const LoginScreen()),
-      (route) => false,
-    );
+      );
+      await _logout();
+    } on FirebaseAuthException catch (error) {
+      if (!mounted) return;
+      showAuthMessage(
+        context,
+        error.code == 'requires-recent-login'
+            ? 'Please logout, login again, then delete your account.'
+            : error.message ?? 'Could not delete account',
+        backgroundColor: Colors.redAccent,
+      );
+    }
   }
 
   Future<void> _confirmLogout() async {
@@ -199,14 +219,16 @@ class _SettingsState extends State<Settings> {
     );
 
     if (confirmed == true) {
-      _logout();
+      await _logout();
     }
   }
 
-  void _logout() {
+  Future<void> _logout() async {
+    await FirebaseAuth.instance.signOut();
+    if (!mounted) return;
     Navigator.pushAndRemoveUntil(
       context,
-      MaterialPageRoute(builder: (context) => const LoginScreen()),
+      MaterialPageRoute(builder: (context) => const AuthGate()),
       (route) => false,
     );
   }

@@ -1,11 +1,11 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:uhd/VerifyEmail_Screen.dart';
 import 'package:uhd/auth_widgets.dart';
 
 class SignupScreen extends StatefulWidget {
-  final List<Map<String, String>> users;
-
-  const SignupScreen({super.key, required this.users});
+  const SignupScreen({super.key});
 
   @override
   State<SignupScreen> createState() => _SignupScreenState();
@@ -36,6 +36,7 @@ class _SignupScreenState extends State<SignupScreen>
   String? _ageError;
   String? _bloodTypeError;
   String? _passwordError;
+  bool _isLoading = false;
 
   late final AnimationController _animationController;
   late final Animation<double> _fadeAnimation;
@@ -63,7 +64,9 @@ class _SignupScreenState extends State<SignupScreen>
     _animationController.forward();
   }
 
-  void _createAccount() {
+  Future<void> _createAccount() async {
+    if (_isLoading) return;
+
     final username = _usernameController.text.trim();
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
@@ -92,43 +95,55 @@ class _SignupScreenState extends State<SignupScreen>
       return;
     }
 
-    final usernameExists = widget.users.any(
-      (user) => user["username"] == username,
-    );
+    setState(() => _isLoading = true);
+    try {
+      final credential = await FirebaseAuth.instance
+          .createUserWithEmailAndPassword(email: email, password: password);
+      final user = credential.user;
+      if (user == null) {
+        throw FirebaseAuthException(code: 'user-not-found');
+      }
 
-    final emailExists = widget.users.any((user) => user["email"] == email);
+      await user.updateDisplayName(username);
+      await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+        'uid': user.uid,
+        'username': username,
+        'email': email,
+        'age': age,
+        'bloodType': _selectedBloodType!,
+        'createdAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      await user.sendEmailVerification();
 
-    if (usernameExists || emailExists) {
+      if (!mounted) return;
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => VerifyEmailScreen(
+            userName: username,
+            email: email,
+            age: age,
+            bloodType: _selectedBloodType!,
+          ),
+        ),
+      );
+    } on FirebaseAuthException catch (error) {
+      if (!mounted) return;
       setState(() {
-        if (usernameExists) {
-          _usernameError = "Username already exists";
-        }
-        if (emailExists) {
-          _emailError = "Email already exists";
+        if (error.code == 'email-already-in-use') {
+          _emailError = 'Email already exists';
+        } else if (error.code == 'weak-password') {
+          _passwordError = 'Password is too weak';
+        } else {
+          _passwordError = error.message ?? 'Could not create account';
         }
       });
-      return;
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
-
-    widget.users.add({
-      "username": username,
-      "password": password,
-      "email": email,
-      "age": age,
-      "bloodType": _selectedBloodType!,
-    });
-
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (_) => VerifyEmailScreen(
-          userName: username,
-          email: email,
-          age: age,
-          bloodType: _selectedBloodType!,
-        ),
-      ),
-    );
   }
 
   String? _validateName(String value) {
@@ -327,7 +342,7 @@ class _SignupScreenState extends State<SignupScreen>
                 ),
                 const SizedBox(height: 22),
                 AuthPrimaryButton(
-                  label: "Create Account",
+                  label: _isLoading ? "Creating account..." : "Create Account",
                   icon: Icons.check_circle_outline,
                   onPressed: _createAccount,
                 ),

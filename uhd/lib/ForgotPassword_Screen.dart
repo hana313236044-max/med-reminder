@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:uhd/auth_widgets.dart';
 
@@ -12,6 +13,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
     with SingleTickerProviderStateMixin {
   final _emailController = TextEditingController();
   bool _emailSent = false;
+  bool _isLoading = false;
   String? _emailError;
 
   late final AnimationController _animationController;
@@ -42,7 +44,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
     _animationController.forward();
   }
 
-  void _sendEmail() {
+  Future<void> _sendEmail() async {
+    if (_isLoading) return;
+
     final email = _emailController.text.trim();
     final emailError = _validateEmail(email);
 
@@ -52,7 +56,19 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
       return;
     }
 
-    setState(() => _emailSent = true);
+    setState(() => _isLoading = true);
+    try {
+      await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
+      if (!mounted) return;
+      setState(() => _emailSent = true);
+    } on FirebaseAuthException catch (error) {
+      if (!mounted) return;
+      setState(() => _emailError = _authErrorMessage(error));
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   String? _validateEmail(String value) {
@@ -64,6 +80,17 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
       return "Enter a valid email address";
     }
     return null;
+  }
+
+  String _authErrorMessage(FirebaseAuthException error) {
+    switch (error.code) {
+      case 'invalid-email':
+        return 'Enter a valid email address';
+      case 'user-not-found':
+        return 'No account found with this email';
+      default:
+        return error.message ?? 'Could not send reset email';
+    }
   }
 
   @override
@@ -136,7 +163,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
                 const SizedBox(height: 22),
                 if (!_emailSent)
                   AuthPrimaryButton(
-                    label: "Send Email",
+                    label: _isLoading ? "Sending..." : "Send Email",
                     icon: Icons.send_outlined,
                     onPressed: _sendEmail,
                   ),

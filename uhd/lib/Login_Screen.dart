@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:uhd/GettingStart.dart';
 import 'package:uhd/ForgotPassword_Screen.dart';
@@ -8,40 +10,17 @@ import 'package:uhd/auth_widgets.dart';
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
-  static final List<Map<String, String>> users = [
-    {
-      "username": "Hana",
-      "password": "Hana123@@",
-      "email": "hana@gmail.com",
-      "age": "22",
-      "bloodType": "A+",
-    },
-    {
-      "username": "Sarina",
-      "password": "Sarina12!",
-      "email": "sarin@gmail.com",
-      "age": "24",
-      "bloodType": "O+",
-    },
-    {
-      "username": "Lare",
-      "password": "Lare123!",
-      "email": "lare@gmail.com",
-      "age": "21",
-      "bloodType": "B+",
-    },
-  ];
-
   @override
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
 class _LoginScreenState extends State<LoginScreen>
     with SingleTickerProviderStateMixin {
-  final _usernameController = TextEditingController();
+  final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _hidePassword = true;
-  String? _usernameError;
+  bool _isLoading = false;
+  String? _emailError;
   String? _passwordError;
 
   late final AnimationController _animationController;
@@ -71,54 +50,89 @@ class _LoginScreenState extends State<LoginScreen>
     _animationController.forward();
   }
 
-  void _validateLogin() {
-    final username = _usernameController.text.trim();
+  Future<void> _validateLogin() async {
+    if (_isLoading) return;
+
+    final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
-    final usernameError = _validateName(username);
+    final emailError = _validateEmail(email);
     final passwordError = _validatePassword(password);
 
     setState(() {
-      _usernameError = usernameError;
+      _emailError = emailError;
       _passwordError = passwordError;
     });
 
-    if (usernameError != null || passwordError != null) {
+    if (emailError != null || passwordError != null) {
       return;
     }
 
-    Map<String, String>? user;
-    for (final savedUser in LoginScreen.users) {
-      if (savedUser["username"] == username &&
-          savedUser["password"] == password) {
-        user = savedUser;
-        break;
+    setState(() => _isLoading = true);
+    try {
+      final credential = await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+      final user = credential.user;
+      await user?.reload();
+      final refreshedUser = FirebaseAuth.instance.currentUser;
+
+      if (refreshedUser == null) {
+        throw FirebaseAuthException(code: 'user-not-found');
+      }
+
+      if (!refreshedUser.emailVerified) {
+        await FirebaseAuth.instance.signOut();
+        if (!mounted) return;
+        showAuthMessage(
+          context,
+          'Please verify your email before logging in.',
+          backgroundColor: Colors.redAccent,
+        );
+        return;
+      }
+
+      final profile = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(refreshedUser.uid)
+          .get();
+      final data = profile.data() ?? {};
+
+      if (!mounted) return;
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => HomePage(
+            userName:
+                (data['username'] as String?) ??
+                refreshedUser.displayName ??
+                'MediTrack user',
+            email:
+                (data['email'] as String?) ??
+                refreshedUser.email ??
+                'Not added',
+            age: (data['age'] as String?) ?? 'Not added',
+            bloodType: (data['bloodType'] as String?) ?? 'Not added',
+          ),
+        ),
+      );
+    } on FirebaseAuthException catch (error) {
+      if (!mounted) return;
+      setState(() => _passwordError = _authErrorMessage(error));
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
       }
     }
-
-    if (user == null) {
-      setState(() => _passwordError = "Invalid username or password");
-      return;
-    }
-
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (_) => HomePage(
-          userName: user!["username"] ?? username,
-          email: user["email"] ?? "Not added",
-          age: user["age"] ?? "Not added",
-          bloodType: user["bloodType"] ?? "Not added",
-        ),
-      ),
-    );
   }
 
-  String? _validateName(String value) {
+  String? _validateEmail(String value) {
     if (value.isEmpty) {
-      return "Name is required";
+      return "Email is required";
     }
-    if (value.length <= 2) {
-      return "Name must be more than 2 characters";
+    final emailPattern = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
+    if (!emailPattern.hasMatch(value)) {
+      return "Enter a valid email address";
     }
     return null;
   }
@@ -141,10 +155,25 @@ class _LoginScreenState extends State<LoginScreen>
         RegExp(r'[^A-Za-z0-9]').hasMatch(value);
   }
 
+  String _authErrorMessage(FirebaseAuthException error) {
+    switch (error.code) {
+      case 'invalid-email':
+        return 'Enter a valid email address';
+      case 'user-disabled':
+        return 'This account has been disabled';
+      case 'user-not-found':
+      case 'wrong-password':
+      case 'invalid-credential':
+        return 'Invalid email or password';
+      default:
+        return error.message ?? 'Could not login. Please try again.';
+    }
+  }
+
   @override
   void dispose() {
     _animationController.dispose();
-    _usernameController.dispose();
+    _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
@@ -167,14 +196,15 @@ class _LoginScreenState extends State<LoginScreen>
                 ),
                 const SizedBox(height: 28),
                 AuthTextField(
-                  controller: _usernameController,
-                  hintText: "Username",
-                  icon: Icons.person_outline,
-                  errorText: _usernameError,
+                  controller: _emailController,
+                  hintText: "Email",
+                  icon: Icons.email_outlined,
+                  keyboardType: TextInputType.emailAddress,
+                  errorText: _emailError,
                   onChanged: (value) {
-                    if (_usernameError != null) {
+                    if (_emailError != null) {
                       setState(
-                        () => _usernameError = _validateName(value.trim()),
+                        () => _emailError = _validateEmail(value.trim()),
                       );
                     }
                   },
@@ -226,7 +256,7 @@ class _LoginScreenState extends State<LoginScreen>
                 ),
                 const SizedBox(height: 8),
                 AuthPrimaryButton(
-                  label: "Login",
+                  label: _isLoading ? "Logging in..." : "Login",
                   icon: Icons.login,
                   onPressed: _validateLogin,
                 ),
@@ -250,7 +280,7 @@ class _LoginScreenState extends State<LoginScreen>
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => SignupScreen(users: LoginScreen.users),
+                        builder: (_) => const SignupScreen(),
                       ),
                     );
                   },

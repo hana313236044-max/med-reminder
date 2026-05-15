@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:uhd/Splash.dart';
+import 'package:uhd/firebase_options.dart';
 
 ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.light);
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   runApp(const Midterm());
 }
 
@@ -17,7 +21,7 @@ class Midterm extends StatelessWidget {
           debugShowCheckedModeBanner: false,
           darkTheme: ThemeData.dark(),
           themeMode: currentMode,
-          home: SplashScreen(),
+          home: const SplashScreen(),
         );
       },
     );

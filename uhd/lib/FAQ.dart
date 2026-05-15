@@ -30,7 +30,7 @@ class FAQPage extends StatelessWidget {
       _FAQItem(
         question: 'Is my data saved online?',
         answer:
-            'Not yet. This version has no backend, so the app works as a local prototype for now.',
+            'Your account profile is saved with Firebase. Medicine and reminder details are still kept in this app session.',
       ),
     ];
 
