@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 enum ReminderStatus { waiting, completed }
@@ -18,6 +19,30 @@ class Medicine {
     required this.ageGroup,
     this.notes,
   });
+
+  factory Medicine.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
+    final data = doc.data() ?? {};
+    return Medicine(
+      id: int.tryParse(doc.id) ?? (data['id'] as num?)?.toInt() ?? 0,
+      name: data['name'] as String? ?? '',
+      category: data['category'] as String? ?? '',
+      form: data['form'] as String? ?? '',
+      ageGroup: data['ageGroup'] as String? ?? '',
+      notes: data['notes'] as String?,
+    );
+  }
+
+  Map<String, dynamic> toFirestore() {
+    return {
+      'id': id,
+      'name': name,
+      'category': category,
+      'form': form,
+      'ageGroup': ageGroup,
+      'notes': notes,
+      'updatedAt': FieldValue.serverTimestamp(),
+    };
+  }
 }
 
 class MedicationReminder {
@@ -48,6 +73,54 @@ class MedicationReminder {
     this.status = ReminderStatus.waiting,
     this.isRescheduled = false,
   });
+
+  factory MedicationReminder.fromFirestore(
+    DocumentSnapshot<Map<String, dynamic>> doc,
+  ) {
+    final data = doc.data() ?? {};
+    final scheduledValue = data['scheduledAt'];
+    final scheduledAt = scheduledValue is Timestamp
+        ? scheduledValue.toDate()
+        : DateTime.tryParse(scheduledValue?.toString() ?? '') ??
+              DateTime.now();
+    final statusName = data['status'] as String?;
+
+    return MedicationReminder(
+      id: int.tryParse(doc.id) ?? (data['id'] as num?)?.toInt() ?? 0,
+      medicineId: (data['medicineId'] as num?)?.toInt() ?? 0,
+      medicineName: data['medicineName'] as String? ?? '',
+      medicineCategory: data['medicineCategory'] as String? ?? '',
+      medicineForm: data['medicineForm'] as String? ?? '',
+      scheduledAt: scheduledAt,
+      quantity: (data['quantity'] as num?)?.toInt() ?? 1,
+      quantityUnit: data['quantityUnit'] as String? ?? 'units',
+      scheduleLabel: data['scheduleLabel'] as String? ?? 'One time',
+      notes: data['notes'] as String?,
+      status: ReminderStatus.values.firstWhere(
+        (status) => status.name == statusName,
+        orElse: () => ReminderStatus.waiting,
+      ),
+      isRescheduled: data['isRescheduled'] as bool? ?? false,
+    );
+  }
+
+  Map<String, dynamic> toFirestore() {
+    return {
+      'id': id,
+      'medicineId': medicineId,
+      'medicineName': medicineName,
+      'medicineCategory': medicineCategory,
+      'medicineForm': medicineForm,
+      'scheduledAt': Timestamp.fromDate(scheduledAt),
+      'quantity': quantity,
+      'quantityUnit': quantityUnit,
+      'scheduleLabel': scheduleLabel,
+      'notes': notes,
+      'status': status.name,
+      'isRescheduled': isRescheduled,
+      'updatedAt': FieldValue.serverTimestamp(),
+    };
+  }
 
   bool get isDelayed {
     final now = DateTime.now();

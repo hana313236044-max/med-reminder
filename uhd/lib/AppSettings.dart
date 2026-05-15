@@ -7,18 +7,36 @@ import 'package:uhd/auth_gate.dart';
 import 'package:uhd/auth_widgets.dart';
 import 'package:uhd/main.dart';
 
-class Settings extends StatefulWidget {
+class AppSettings extends StatefulWidget {
   final bool showScaffold;
 
-  const Settings({super.key, this.showScaffold = true});
+  const AppSettings({super.key, this.showScaffold = true});
 
   @override
-  State<Settings> createState() => _SettingsState();
+  State<AppSettings> createState() => _AppSettingsState();
 }
 
-class _SettingsState extends State<Settings> {
+class _AppSettingsState extends State<AppSettings> {
   bool notificationsEnabled = true;
   String selectedLanguage = 'English';
+
+  String? get _userId => FirebaseAuth.instance.currentUser?.uid;
+
+  DocumentReference<Map<String, dynamic>>? get _settingsRef {
+    final uid = _userId;
+    if (uid == null) return null;
+    return FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .collection('settings')
+        .doc('app');
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSettings();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -53,8 +71,36 @@ class _SettingsState extends State<Settings> {
     );
   }
 
+  Future<void> _loadSettings() async {
+    final settingsRef = _settingsRef;
+    if (settingsRef == null) return;
+
+    final snapshot = await settingsRef.get();
+    final data = snapshot.data();
+    if (data == null || !mounted) return;
+
+    setState(() {
+      notificationsEnabled = data['notificationsEnabled'] as bool? ?? true;
+      selectedLanguage = data['language'] as String? ?? 'English';
+      themeNotifier.value = data['darkMode'] == true
+          ? ThemeMode.dark
+          : ThemeMode.light;
+    });
+  }
+
+  Future<void> _saveSettings(Map<String, dynamic> data) async {
+    final settingsRef = _settingsRef;
+    if (settingsRef == null) return;
+
+    await settingsRef.set({
+      ...data,
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+  }
+
   void _setNotifications(bool value) {
     setState(() => notificationsEnabled = value);
+    _saveSettings({'notificationsEnabled': value});
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
@@ -71,6 +117,7 @@ class _SettingsState extends State<Settings> {
     setState(() {
       themeNotifier.value = value ? ThemeMode.dark : ThemeMode.light;
     });
+    _saveSettings({'darkMode': value});
   }
 
   Future<void> _pickLanguage() async {
@@ -127,6 +174,7 @@ class _SettingsState extends State<Settings> {
 
     if (language == null) return;
     setState(() => selectedLanguage = language);
+    await _saveSettings({'language': selectedLanguage});
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -171,11 +219,20 @@ class _SettingsState extends State<Settings> {
       return;
     }
 
+    final lastSignIn = user.metadata.lastSignInTime;
+    if (lastSignIn == null ||
+        DateTime.now().difference(lastSignIn) > const Duration(minutes: 5)) {
+      if (!mounted) return;
+      showAuthMessage(
+        context,
+        'Please logout, login again, then delete your account.',
+        backgroundColor: Colors.redAccent,
+      );
+      return;
+    }
+
     try {
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .delete();
+      await _deleteUserData(user.uid);
       await user.delete();
       if (!mounted) return;
       showAuthMessage(
@@ -194,6 +251,22 @@ class _SettingsState extends State<Settings> {
         backgroundColor: Colors.redAccent,
       );
     }
+  }
+
+  Future<void> _deleteUserData(String uid) async {
+    final firestore = FirebaseFirestore.instance;
+    final userRef = firestore.collection('users').doc(uid);
+    final batch = firestore.batch();
+
+    for (final collectionName in ['medicines', 'reminders', 'settings']) {
+      final snapshot = await userRef.collection(collectionName).get();
+      for (final doc in snapshot.docs) {
+        batch.delete(doc.reference);
+      }
+    }
+
+    batch.delete(userRef);
+    await batch.commit();
   }
 
   Future<void> _confirmLogout() async {

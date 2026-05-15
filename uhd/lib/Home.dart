@@ -1,7 +1,11 @@
+import 'dart:async';
+
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:uhd/AddMedicinePage.dart';
 import 'package:uhd/AddReminderPage.dart';
-import 'package:uhd/Settings.dart';
+import 'package:uhd/AppSettings.dart';
 import 'package:uhd/auth_widgets.dart';
 import 'package:uhd/med_models.dart';
 
@@ -28,9 +32,75 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   final List<MedicationReminder> _reminders = [];
   final List<Medicine> _medicines = [];
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>?
+      _medicinesSubscription;
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>?
+      _remindersSubscription;
   ReminderFilter _filter = ReminderFilter.all;
   DateTime _selectedDate = DateTime.now();
   int _selectedTab = 0;
+  bool _isLoadingData = true;
+
+  String? get _userId => FirebaseAuth.instance.currentUser?.uid;
+
+  CollectionReference<Map<String, dynamic>>? get _medicinesRef {
+    final uid = _userId;
+    if (uid == null) return null;
+    return FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .collection('medicines');
+  }
+
+  CollectionReference<Map<String, dynamic>>? get _remindersRef {
+    final uid = _userId;
+    if (uid == null) return null;
+    return FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .collection('reminders');
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _listenToUserData();
+  }
+
+  void _listenToUserData() {
+    final medicinesRef = _medicinesRef;
+    final remindersRef = _remindersRef;
+    if (medicinesRef == null || remindersRef == null) {
+      setState(() => _isLoadingData = false);
+      return;
+    }
+
+    _medicinesSubscription = medicinesRef
+        .orderBy('name')
+        .snapshots()
+        .listen((snapshot) {
+          if (!mounted) return;
+          setState(() {
+            _medicines
+              ..clear()
+              ..addAll(snapshot.docs.map(Medicine.fromFirestore));
+            _isLoadingData = false;
+          });
+        });
+
+    _remindersSubscription = remindersRef
+        .orderBy('scheduledAt')
+        .snapshots()
+        .listen((snapshot) {
+          if (!mounted) return;
+          setState(() {
+            _reminders
+              ..clear()
+              ..addAll(snapshot.docs.map(MedicationReminder.fromFirestore));
+            _isLoadingData = false;
+          });
+        });
+  }
 
   List<MedicationReminder> get _filteredReminders {
     final dayReminders = _reminders
@@ -108,22 +178,37 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
-  void _saveMedicine(Medicine medicine) {
-    setState(() {
-      final index = _medicines.indexWhere((item) => item.id == medicine.id);
-      if (index == -1) {
-        _medicines.add(medicine);
-      } else {
-        _medicines[index] = medicine;
-        for (final reminder in _reminders) {
-          if (reminder.medicineId == medicine.id) {
-            reminder.medicineName = medicine.name;
-            reminder.medicineCategory = medicine.category;
-            reminder.medicineForm = medicine.form;
-          }
-        }
+  Future<void> _saveMedicine(Medicine medicine) async {
+    final medicinesRef = _medicinesRef;
+    final remindersRef = _remindersRef;
+    if (medicinesRef == null || remindersRef == null) return;
+
+    final batch = FirebaseFirestore.instance.batch();
+    batch.set(
+      medicinesRef.doc(medicine.id.toString()),
+      {
+        ...medicine.toFirestore(),
+        'createdAt': FieldValue.serverTimestamp(),
+      },
+      SetOptions(merge: true),
+    );
+
+    for (final reminder in _reminders) {
+      if (reminder.medicineId == medicine.id) {
+        batch.set(
+          remindersRef.doc(reminder.id.toString()),
+          {
+            'medicineName': medicine.name,
+            'medicineCategory': medicine.category,
+            'medicineForm': medicine.form,
+            'updatedAt': FieldValue.serverTimestamp(),
+          },
+          SetOptions(merge: true),
+        );
       }
-    });
+    }
+
+    await batch.commit();
   }
 
   Future<void> _deleteMedicine(int medicineId) async {
@@ -136,19 +221,40 @@ class _HomePageState extends State<HomePage> {
     );
     if (!confirmed) return;
 
-    setState(() {
-      _medicines.removeWhere((medicine) => medicine.id == medicineId);
-      _reminders.removeWhere((reminder) => reminder.medicineId == medicineId);
-    });
+    final medicinesRef = _medicinesRef;
+    final remindersRef = _remindersRef;
+    if (medicinesRef == null || remindersRef == null) return;
+
+    final batch = FirebaseFirestore.instance.batch();
+    batch.delete(medicinesRef.doc(medicineId.toString()));
+    for (final reminder in _reminders) {
+      if (reminder.medicineId == medicineId) {
+        batch.delete(remindersRef.doc(reminder.id.toString()));
+      }
+    }
+    await batch.commit();
   }
 
-  void _saveReminders(List<MedicationReminder> reminders) {
-    setState(() {
-      _reminders.addAll(reminders);
-      if (reminders.isNotEmpty) {
-        _selectedDate = reminders.first.scheduledAt;
-      }
-    });
+  Future<void> _saveReminders(List<MedicationReminder> reminders) async {
+    final remindersRef = _remindersRef;
+    if (remindersRef == null) return;
+
+    final batch = FirebaseFirestore.instance.batch();
+    for (final reminder in reminders) {
+      batch.set(
+        remindersRef.doc(reminder.id.toString()),
+        {
+          ...reminder.toFirestore(),
+          'createdAt': FieldValue.serverTimestamp(),
+        },
+        SetOptions(merge: true),
+      );
+    }
+    await batch.commit();
+
+    if (reminders.isNotEmpty && mounted) {
+      setState(() => _selectedDate = reminders.first.scheduledAt);
+    }
   }
 
   Future<void> _markTook(MedicationReminder reminder) async {
@@ -160,7 +266,13 @@ class _HomePageState extends State<HomePage> {
     );
     if (!confirmed) return;
 
-    setState(() => reminder.status = ReminderStatus.completed);
+    final remindersRef = _remindersRef;
+    if (remindersRef == null) return;
+
+    await remindersRef.doc(reminder.id.toString()).set({
+      'status': ReminderStatus.completed.name,
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
   }
 
   Future<void> _reschedule(MedicationReminder reminder) async {
@@ -193,11 +305,15 @@ class _HomePageState extends State<HomePage> {
       return;
     }
 
-    setState(() {
-      reminder.scheduledAt = updatedAt;
-      reminder.status = ReminderStatus.waiting;
-      reminder.isRescheduled = true;
-    });
+    final remindersRef = _remindersRef;
+    if (remindersRef == null) return;
+
+    await remindersRef.doc(reminder.id.toString()).set({
+      'scheduledAt': Timestamp.fromDate(updatedAt),
+      'status': ReminderStatus.waiting.name,
+      'isRescheduled': true,
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
   }
 
   Future<void> _deleteReminder(MedicationReminder reminder) async {
@@ -209,7 +325,10 @@ class _HomePageState extends State<HomePage> {
     );
     if (!confirmed) return;
 
-    setState(() => _reminders.remove(reminder));
+    final remindersRef = _remindersRef;
+    if (remindersRef == null) return;
+
+    await remindersRef.doc(reminder.id.toString()).delete();
   }
 
   Future<bool> _confirmAction({
@@ -270,6 +389,13 @@ class _HomePageState extends State<HomePage> {
   }
 
   @override
+  void dispose() {
+    _medicinesSubscription?.cancel();
+    _remindersSubscription?.cancel();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
@@ -298,7 +424,7 @@ class _HomePageState extends State<HomePage> {
         selectedIndex: _selectedTab,
         onSelected: (index) => setState(() => _selectedTab = index),
       ),
-      body: _bodyForTab(),
+      body: _isLoadingData ? const _LoadingDataState() : _bodyForTab(),
     );
   }
 
@@ -326,7 +452,7 @@ class _HomePageState extends State<HomePage> {
           onDeleteMedicine: _deleteMedicine,
         );
       case 2:
-        return const Settings(showScaffold: false);
+        return const AppSettings(showScaffold: false);
       case 3:
         return _ProfileTab(
           userName: widget.userName,
@@ -1128,6 +1254,17 @@ class _EmptyReminderState extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _LoadingDataState extends StatelessWidget {
+  const _LoadingDataState();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Center(
+      child: CircularProgressIndicator(color: authPrimary),
     );
   }
 }

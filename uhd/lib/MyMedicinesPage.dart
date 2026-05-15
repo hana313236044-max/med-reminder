@@ -5,8 +5,8 @@ import 'package:uhd/med_models.dart';
 
 class MyMedicinesPage extends StatefulWidget {
   final List<Medicine> medicines;
-  final ValueChanged<Medicine> onSaveMedicine;
-  final ValueChanged<int> onDeleteMedicine;
+  final Future<void> Function(Medicine) onSaveMedicine;
+  final Future<void> Function(int) onDeleteMedicine;
 
   const MyMedicinesPage({
     super.key,
@@ -20,8 +20,9 @@ class MyMedicinesPage extends StatefulWidget {
 }
 
 class _MyMedicinesPageState extends State<MyMedicinesPage> {
-  void _saveMedicine(Medicine medicine) {
-    widget.onSaveMedicine(medicine);
+  Future<void> _saveMedicine(Medicine medicine) async {
+    await widget.onSaveMedicine(medicine);
+    if (!mounted) return;
     setState(() {});
   }
 
@@ -50,7 +51,8 @@ class _MyMedicinesPageState extends State<MyMedicinesPage> {
     );
     if (confirmed != true) return;
 
-    widget.onDeleteMedicine(id);
+    await widget.onDeleteMedicine(id);
+    if (!mounted) return;
     setState(() {});
   }
 

@@ -4,7 +4,7 @@ import 'package:uhd/med_models.dart';
 
 class AddReminderPage extends StatefulWidget {
   final List<Medicine> medicines;
-  final ValueChanged<List<MedicationReminder>> onSaveReminders;
+  final Future<void> Function(List<MedicationReminder>) onSaveReminders;
 
   const AddReminderPage({
     super.key,
@@ -30,6 +30,7 @@ class _AddReminderPageState extends State<AddReminderPage> {
   String? _medicineError;
   String? _intervalError;
   String? _durationError;
+  bool _isSaving = false;
 
   final List<String> _repeatUnits = const ['hours', 'days', 'weeks'];
 
@@ -65,7 +66,9 @@ class _AddReminderPageState extends State<AddReminderPage> {
     }
   }
 
-  void _save() {
+  Future<void> _save() async {
+    if (_isSaving) return;
+
     final interval = int.tryParse(_intervalController.text.trim());
     final durationDays = int.tryParse(_durationDaysController.text.trim());
     setState(() {
@@ -99,16 +102,28 @@ class _AddReminderPageState extends State<AddReminderPage> {
         : 'One time';
 
     final medicine = _selectedMedicine!;
-    widget.onSaveReminders(
-      _buildReminderRecords(
-        medicine: medicine,
-        firstAt: scheduledAt,
-        interval: interval ?? 1,
-        durationDays: durationDays ?? 1,
-        label: label,
-      ),
-    );
-    Navigator.pop(context);
+    setState(() => _isSaving = true);
+    try {
+      await widget.onSaveReminders(
+        _buildReminderRecords(
+          medicine: medicine,
+          firstAt: scheduledAt,
+          interval: interval ?? 1,
+          durationDays: durationDays ?? 1,
+          label: label,
+        ),
+      );
+      if (!mounted) return;
+      Navigator.pop(context);
+    } catch (_) {
+      if (!mounted) return;
+      showAuthMessage(
+        context,
+        'Could not save reminder. Please try again.',
+        backgroundColor: Colors.redAccent,
+      );
+      setState(() => _isSaving = false);
+    }
   }
 
   List<MedicationReminder> _buildReminderRecords({
@@ -382,7 +397,7 @@ class _AddReminderPageState extends State<AddReminderPage> {
             ),
             const SizedBox(height: 22),
             AuthPrimaryButton(
-              label: 'Save Reminder',
+              label: _isSaving ? 'Saving...' : 'Save Reminder',
               icon: Icons.check_circle_outline,
               onPressed: widget.medicines.isEmpty ? () {} : _save,
             ),

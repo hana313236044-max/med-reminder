@@ -4,7 +4,7 @@ import 'package:uhd/med_models.dart';
 
 class AddMedicinePage extends StatefulWidget {
   final Medicine? medicine;
-  final ValueChanged<Medicine> onSaveMedicine;
+  final Future<void> Function(Medicine) onSaveMedicine;
 
   const AddMedicinePage({
     super.key,
@@ -62,6 +62,7 @@ class _AddMedicinePageState extends State<AddMedicinePage> {
   String? _categoryError;
   String? _formError;
   String? _ageError;
+  bool _isSaving = false;
 
   bool get _isEditing => widget.medicine != null;
 
@@ -78,7 +79,9 @@ class _AddMedicinePageState extends State<AddMedicinePage> {
     }
   }
 
-  void _save() {
+  Future<void> _save() async {
+    if (_isSaving) return;
+
     final name = _nameController.text.trim();
     setState(() {
       _nameError = name.length <= 3 ? 'Name must be more than 3 letters' : null;
@@ -105,8 +108,20 @@ class _AddMedicinePageState extends State<AddMedicinePage> {
           : _notesController.text.trim(),
     );
 
-    widget.onSaveMedicine(medicine);
-    Navigator.pop(context);
+    setState(() => _isSaving = true);
+    try {
+      await widget.onSaveMedicine(medicine);
+      if (!mounted) return;
+      Navigator.pop(context);
+    } catch (_) {
+      if (!mounted) return;
+      showAuthMessage(
+        context,
+        'Could not save medicine. Please try again.',
+        backgroundColor: Colors.redAccent,
+      );
+      setState(() => _isSaving = false);
+    }
   }
 
   @override
@@ -222,7 +237,11 @@ class _AddMedicinePageState extends State<AddMedicinePage> {
             ),
             const SizedBox(height: 22),
             AuthPrimaryButton(
-              label: _isEditing ? 'Update Medicine' : 'Add Medicine',
+              label: _isSaving
+                  ? 'Saving...'
+                  : _isEditing
+                  ? 'Update Medicine'
+                  : 'Add Medicine',
               icon: _isEditing ? Icons.save_outlined : Icons.add,
               onPressed: _save,
             ),
