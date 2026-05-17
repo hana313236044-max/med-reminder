@@ -1,5 +1,6 @@
+// This screen answers common app questions.
 import 'package:flutter/material.dart';
-import 'package:uhd/auth_widgets.dart';
+import 'package:uhd/widgets/app_widgets.dart';
 
 class FAQPage extends StatelessWidget {
   const FAQPage({super.key});

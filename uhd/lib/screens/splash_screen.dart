@@ -1,8 +1,9 @@
+// This screen shows the app splash before auth loading.
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:uhd/auth_gate.dart';
-import 'package:uhd/auth_widgets.dart';
+import 'package:uhd/screens/auth_gate.dart';
+import 'package:uhd/widgets/app_widgets.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});

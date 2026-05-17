@@ -1,10 +1,11 @@
+// This screen manages app settings and account actions.
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:uhd/ContactUs.dart';
-import 'package:uhd/FAQ.dart';
-import 'package:uhd/auth_gate.dart';
-import 'package:uhd/auth_widgets.dart';
+import 'package:uhd/screens/contact_us_screen.dart';
+import 'package:uhd/screens/faq_screen.dart';
+import 'package:uhd/screens/auth_gate.dart';
+import 'package:uhd/widgets/app_widgets.dart';
 import 'package:uhd/main.dart';
 
 class AppSettings extends StatefulWidget {

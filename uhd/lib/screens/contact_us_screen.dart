@@ -1,5 +1,6 @@
+// This screen shows support contact options.
 import 'package:flutter/material.dart';
-import 'package:uhd/auth_widgets.dart';
+import 'package:uhd/widgets/app_widgets.dart';
 
 class ContactUsPage extends StatelessWidget {
   const ContactUsPage({super.key});

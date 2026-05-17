@@ -1,6 +1,7 @@
+// This screen sends password reset email links.
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:uhd/auth_widgets.dart';
+import 'package:uhd/widgets/app_widgets.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});

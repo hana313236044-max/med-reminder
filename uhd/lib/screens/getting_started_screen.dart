@@ -1,5 +1,6 @@
+// This screen guides new users through the app.
 import 'package:flutter/material.dart';
-import 'package:uhd/auth_widgets.dart';
+import 'package:uhd/widgets/app_widgets.dart';
 
 class GettingStartedPage extends StatelessWidget {
   const GettingStartedPage({super.key});

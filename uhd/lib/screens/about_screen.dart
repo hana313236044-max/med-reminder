@@ -1,6 +1,7 @@
+// This screen explains the app and version information.
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:uhd/auth_widgets.dart';
+import 'package:uhd/widgets/app_widgets.dart';
 
 class AboutPage extends StatefulWidget {
   const AboutPage({super.key});

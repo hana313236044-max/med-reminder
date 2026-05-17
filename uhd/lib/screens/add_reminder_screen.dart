@@ -1,6 +1,7 @@
+// This screen schedules medicine reminders.
 import 'package:flutter/material.dart';
-import 'package:uhd/auth_widgets.dart';
-import 'package:uhd/med_models.dart';
+import 'package:uhd/widgets/app_widgets.dart';
+import 'package:uhd/models/medicine_models.dart';
 
 class AddReminderPage extends StatefulWidget {
   final List<Medicine> medicines;

@@ -1,7 +1,8 @@
+// This screen asks users to verify their email address.
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:uhd/auth_gate.dart';
-import 'package:uhd/auth_widgets.dart';
+import 'package:uhd/screens/auth_gate.dart';
+import 'package:uhd/widgets/app_widgets.dart';
 
 class VerifyEmailScreen extends StatefulWidget {
   final String? userName;

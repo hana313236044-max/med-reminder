@@ -1,7 +1,8 @@
+// This screen lists and manages saved medicines.
 import 'package:flutter/material.dart';
-import 'package:uhd/AddMedicinePage.dart';
-import 'package:uhd/auth_widgets.dart';
-import 'package:uhd/med_models.dart';
+import 'package:uhd/screens/add_medicine_screen.dart';
+import 'package:uhd/widgets/app_widgets.dart';
+import 'package:uhd/models/medicine_models.dart';
 
 class MyMedicinesPage extends StatefulWidget {
   final List<Medicine> medicines;

@@ -1,8 +1,9 @@
+// This screen creates a new user account.
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:uhd/VerifyEmail_Screen.dart';
-import 'package:uhd/auth_widgets.dart';
+import 'package:uhd/screens/verify_email_screen.dart';
+import 'package:uhd/widgets/app_widgets.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});

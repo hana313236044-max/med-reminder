@@ -1,10 +1,11 @@
+// This screen chooses the correct auth or home flow.
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:uhd/Home.dart';
-import 'package:uhd/Login_Screen.dart';
-import 'package:uhd/VerifyEmail_Screen.dart';
-import 'package:uhd/auth_widgets.dart';
+import 'package:uhd/screens/home_screen.dart';
+import 'package:uhd/screens/login_screen.dart';
+import 'package:uhd/screens/verify_email_screen.dart';
+import 'package:uhd/widgets/app_widgets.dart';
 
 class AuthGate extends StatelessWidget {
   const AuthGate({super.key});

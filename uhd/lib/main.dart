@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:uhd/auth_widgets.dart';
-import 'package:uhd/Splash.dart';
+import 'package:uhd/widgets/app_widgets.dart';
+import 'package:uhd/screens/splash_screen.dart';
 import 'package:uhd/firebase_options.dart';
 
 ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.light);

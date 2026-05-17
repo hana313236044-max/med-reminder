@@ -1,11 +1,12 @@
+// This screen signs users into their account.
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:uhd/GettingStart.dart';
-import 'package:uhd/ForgotPassword_Screen.dart';
-import 'package:uhd/Home.dart';
-import 'package:uhd/Signup_Screen.dart';
-import 'package:uhd/auth_widgets.dart';
+import 'package:uhd/screens/getting_started_screen.dart';
+import 'package:uhd/screens/forgot_password_screen.dart';
+import 'package:uhd/screens/home_screen.dart';
+import 'package:uhd/screens/signup_screen.dart';
+import 'package:uhd/widgets/app_widgets.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
