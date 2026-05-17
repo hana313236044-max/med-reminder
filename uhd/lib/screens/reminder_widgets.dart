@@ -28,7 +28,14 @@ class _ReminderCard extends StatelessWidget {
     return const Color(0xFFB7791F);
   }
 
-  Color _statusBackground() {
+  Color _statusBackground(BuildContext context) {
+    final isDark = appIsDark(context);
+    if (isDark) {
+      if (reminder.isCompleted) return const Color(0xFF123C3B);
+      if (reminder.isNotTaken) return const Color(0xFF3B2025);
+      if (reminder.isDelayed) return const Color(0xFF3B2025);
+      return const Color(0xFF3A311E);
+    }
     if (reminder.isCompleted) return const Color(0xFFEAF8F6);
     if (reminder.isNotTaken) return const Color(0xFFFFECEC);
     if (reminder.isDelayed) return const Color(0xFFFFECEC);
@@ -45,17 +52,25 @@ class _ReminderCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final statusColor = _statusColor();
-    final statusBackground = _statusBackground();
+    final statusBackground = _statusBackground(context);
+    final isDark = appIsDark(context);
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: statusBackground.withOpacity(0.48),
+        color: isDark ? statusBackground : statusBackground.withOpacity(0.48),
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: statusColor.withOpacity(0.32), width: 1.2),
+        border: Border.all(
+          color: isDark
+              ? appBorderColor(context)
+              : statusColor.withOpacity(0.32),
+          width: 1.2,
+        ),
         boxShadow: [
           BoxShadow(
-            color: statusColor.withOpacity(0.10),
-            blurRadius: 18,
+            color: isDark
+                ? Colors.black.withOpacity(0.24)
+                : statusColor.withOpacity(0.10),
+            blurRadius: isDark ? 14 : 18,
             offset: const Offset(0, 10),
           ),
         ],
@@ -107,10 +122,14 @@ class _ReminderCard extends StatelessWidget {
               _Tag(label: reminder.medicineForm),
               _Tag(label: reminder.scheduleLabel),
               if (reminder.isRescheduled)
-                const _Tag(
+                _Tag(
                   label: 'Rescheduled',
-                  color: Color(0xFFE8F0FF),
-                  textColor: Color(0xFF3157B7),
+                  color: isDark
+                      ? const Color(0xFF1C335A)
+                      : const Color(0xFFE8F0FF),
+                  textColor: isDark
+                      ? const Color(0xFF9DBBFF)
+                      : const Color(0xFF3157B7),
                 ),
               _Tag(
                 label: _statusLabel(),
@@ -160,8 +179,10 @@ class _ReminderCard extends StatelessWidget {
                   label: const Text('Took'),
                   style: FilledButton.styleFrom(
                     backgroundColor: authPrimary,
-                    disabledBackgroundColor: Colors.grey.shade200,
-                    disabledForegroundColor: Colors.grey.shade500,
+                    disabledBackgroundColor:
+                        isDark ? appDarkSurfaceAlt : Colors.grey.shade200,
+                    disabledForegroundColor:
+                        isDark ? appDarkMuted : Colors.grey.shade500,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
                     ),
@@ -176,8 +197,11 @@ class _ReminderCard extends StatelessWidget {
                   label: const Text('Reschedule'),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: authPrimary,
-                    disabledForegroundColor: Colors.grey.shade500,
-                    side: BorderSide(color: Colors.teal.shade100),
+                    disabledForegroundColor:
+                        isDark ? appDarkMuted : Colors.grey.shade500,
+                    side: BorderSide(
+                      color: isDark ? appDarkBorder : Colors.teal.shade100,
+                    ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
                     ),
