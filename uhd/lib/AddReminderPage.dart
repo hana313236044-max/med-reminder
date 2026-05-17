@@ -192,7 +192,7 @@ class _AddReminderPageState extends State<AddReminderPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: appScaffoldColor(context),
       appBar: AppBar(
         backgroundColor: authPrimary,
         foregroundColor: authInk,
@@ -209,8 +209,8 @@ class _AddReminderPageState extends State<AddReminderPage> {
           children: [
             Text(
               'Schedule medicine',
-              style: const TextStyle(
-                color: authInk,
+              style: TextStyle(
+                color: appTextColor(context),
                 fontSize: 28,
                 fontWeight: FontWeight.w900,
               ),
@@ -219,7 +219,7 @@ class _AddReminderPageState extends State<AddReminderPage> {
             Text(
               'Pick a saved medicine, dose, and exact schedule.',
               style: TextStyle(
-                color: Colors.blueGrey.shade600,
+                color: appMutedTextColor(context),
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -272,6 +272,7 @@ class _AddReminderPageState extends State<AddReminderPage> {
                   child: DropdownButtonFormField<int>(
                     value: _quantity,
                     decoration: authInputDecoration(
+                      context: context,
                       hintText: 'How many $_quantityUnit?',
                       icon: Icons.format_list_numbered,
                     ),
@@ -294,7 +295,7 @@ class _AddReminderPageState extends State<AddReminderPage> {
             Container(
               padding: const EdgeInsets.all(6),
               decoration: BoxDecoration(
-                color: const Color(0xFFEAF8F6),
+                color: appTintSurfaceColor(context),
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Row(
@@ -321,6 +322,7 @@ class _AddReminderPageState extends State<AddReminderPage> {
                       controller: _intervalController,
                       keyboardType: TextInputType.number,
                       decoration: authInputDecoration(
+                        context: context,
                         hintText: 'Every number',
                         icon: Icons.repeat_outlined,
                         errorText: _intervalError,
@@ -344,6 +346,7 @@ class _AddReminderPageState extends State<AddReminderPage> {
                     child: DropdownButtonFormField<String>(
                       value: _repeatUnit,
                       decoration: authInputDecoration(
+                        context: context,
                         hintText: 'Every what',
                         icon: Icons.timelapse_outlined,
                       ),
@@ -367,6 +370,7 @@ class _AddReminderPageState extends State<AddReminderPage> {
                 controller: _durationDaysController,
                 keyboardType: TextInputType.number,
                 decoration: authInputDecoration(
+                  context: context,
                   hintText: 'For how many days?',
                   icon: Icons.event_repeat_outlined,
                   errorText: _durationError,
@@ -391,6 +395,7 @@ class _AddReminderPageState extends State<AddReminderPage> {
               controller: _notesController,
               maxLines: 3,
               decoration: authInputDecoration(
+                context: context,
                 hintText: 'Notes optional',
                 icon: Icons.notes_outlined,
               ),
@@ -451,6 +456,7 @@ class _MedicineAutocomplete extends StatelessWidget {
             }
           },
           decoration: authInputDecoration(
+            context: context,
             hintText: 'Search and choose medicine',
             icon: Icons.search,
             errorText: errorText,
@@ -513,9 +519,9 @@ class _PickerTile extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: const Color(0xFFF3FAF9),
+          color: appSoftSurfaceColor(context),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.teal.shade50),
+          border: Border.all(color: appBorderColor(context)),
         ),
         child: Row(
           children: [
@@ -528,7 +534,7 @@ class _PickerTile extends StatelessWidget {
                   Text(
                     label,
                     style: TextStyle(
-                      color: Colors.blueGrey.shade500,
+                      color: appMutedTextColor(context),
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
                     ),
@@ -536,8 +542,8 @@ class _PickerTile extends StatelessWidget {
                   const SizedBox(height: 3),
                   Text(
                     value,
-                    style: const TextStyle(
-                      color: authInk,
+                    style: TextStyle(
+                      color: appTextColor(context),
                       fontWeight: FontWeight.w800,
                     ),
                   ),
@@ -572,12 +578,12 @@ class _ScheduleModeButton extends StatelessWidget {
           height: 44,
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            color: selected ? Colors.white : Colors.transparent,
+            color: selected ? appSurfaceColor(context) : Colors.transparent,
             borderRadius: BorderRadius.circular(12),
             boxShadow: selected
                 ? [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.06),
+                      color: appShadowColor(context, 0.06),
                       blurRadius: 10,
                       offset: const Offset(0, 4),
                     ),
@@ -587,7 +593,7 @@ class _ScheduleModeButton extends StatelessWidget {
           child: Text(
             label,
             style: TextStyle(
-              color: selected ? authPrimary : Colors.blueGrey.shade500,
+              color: selected ? authPrimary : appMutedTextColor(context),
               fontWeight: FontWeight.w800,
             ),
           ),

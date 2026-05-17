@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:uhd/auth_gate.dart';
+import 'package:uhd/auth_widgets.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -26,7 +27,7 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: appScaffoldColor(context),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -38,9 +39,13 @@ class _SplashScreenState extends State<SplashScreen> {
               fit: BoxFit.contain,
             ),
             const SizedBox(height: 20),
-            const Text(
+            Text(
               "MediTrack",
-              style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                color: appTextColor(context),
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ],
         ),

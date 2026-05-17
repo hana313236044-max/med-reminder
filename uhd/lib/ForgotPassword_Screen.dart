@@ -122,9 +122,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
                     width: double.infinity,
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFEAF8F6),
+                      color: appTintSurfaceColor(context),
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: Colors.teal.shade100),
+                      border: Border.all(color: appBorderColor(context)),
                     ),
                     child: Row(
                       children: [
@@ -136,8 +136,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen>
                         Expanded(
                           child: Text(
                             "Email sent to ${_emailController.text.trim()}",
-                            style: const TextStyle(
-                              color: authInk,
+                            style: TextStyle(
+                              color: appTextColor(context),
                               fontWeight: FontWeight.w600,
                             ),
                           ),

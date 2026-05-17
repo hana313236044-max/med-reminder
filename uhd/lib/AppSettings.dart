@@ -57,7 +57,7 @@ class _AppSettingsState extends State<AppSettings> {
     }
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: appScaffoldColor(context),
       appBar: AppBar(
         backgroundColor: authPrimary,
         foregroundColor: Colors.white,
@@ -349,10 +349,10 @@ class _SettingsBody extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.fromLTRB(18, 16, 18, 96),
       children: [
-        const Text(
+        Text(
           'Settings',
           style: TextStyle(
-            color: authInk,
+            color: appTextColor(context),
             fontSize: 28,
             fontWeight: FontWeight.w900,
           ),
@@ -361,7 +361,7 @@ class _SettingsBody extends StatelessWidget {
         Text(
           'Manage reminders, display, and account options.',
           style: TextStyle(
-            color: Colors.blueGrey.shade600,
+            color: appMutedTextColor(context),
             fontWeight: FontWeight.w700,
           ),
         ),
@@ -443,12 +443,12 @@ class _SettingsSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: appSurfaceColor(context),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFE2F3F0)),
+        border: Border.all(color: appBorderColor(context)),
         boxShadow: [
           BoxShadow(
-            color: authPrimary.withOpacity(0.08),
+            color: appShadowColor(context),
             blurRadius: 18,
             offset: const Offset(0, 8),
           ),
@@ -482,12 +482,15 @@ class _SettingsSwitchTile extends StatelessWidget {
       secondary: _SettingsIcon(icon: icon),
       title: Text(
         title,
-        style: const TextStyle(color: authInk, fontWeight: FontWeight.w900),
+        style: TextStyle(
+          color: appTextColor(context),
+          fontWeight: FontWeight.w900,
+        ),
       ),
       subtitle: Text(
         subtitle,
         style: TextStyle(
-          color: Colors.blueGrey.shade500,
+          color: appMutedTextColor(context),
           fontWeight: FontWeight.w600,
         ),
       ),
@@ -523,20 +526,20 @@ class _SettingsActionTile extends StatelessWidget {
       title: Text(
         title,
         style: TextStyle(
-          color: danger ? Colors.redAccent : authInk,
+          color: danger ? Colors.redAccent : appTextColor(context),
           fontWeight: FontWeight.w900,
         ),
       ),
       subtitle: Text(
         subtitle,
         style: TextStyle(
-          color: Colors.blueGrey.shade500,
+          color: appMutedTextColor(context),
           fontWeight: FontWeight.w600,
         ),
       ),
       trailing: trailing == null
           ? null
-          : Icon(trailing, color: Colors.blueGrey.shade400),
+          : Icon(trailing, color: appMutedTextColor(context)),
       onTap: onTap,
     );
   }

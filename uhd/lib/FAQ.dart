@@ -35,7 +35,7 @@ class FAQPage extends StatelessWidget {
     ];
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: appScaffoldColor(context),
       appBar: AppBar(
         backgroundColor: authPrimary,
         foregroundColor: Colors.white,
@@ -90,12 +90,12 @@ class _FAQCard extends StatelessWidget {
       data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: appSurfaceColor(context),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: const Color(0xFFE2F3F0)),
+          border: Border.all(color: appBorderColor(context)),
           boxShadow: [
             BoxShadow(
-              color: authPrimary.withOpacity(0.08),
+              color: appShadowColor(context),
               blurRadius: 18,
               offset: const Offset(0, 8),
             ),
@@ -105,11 +105,11 @@ class _FAQCard extends StatelessWidget {
           tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
           childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
           iconColor: authPrimary,
-          collapsedIconColor: Colors.blueGrey.shade400,
+          collapsedIconColor: appMutedTextColor(context),
           title: Text(
             item.question,
-            style: const TextStyle(
-              color: authInk,
+            style: TextStyle(
+              color: appTextColor(context),
               fontWeight: FontWeight.w900,
             ),
           ),
@@ -119,7 +119,7 @@ class _FAQCard extends StatelessWidget {
               child: Text(
                 item.answer,
                 style: TextStyle(
-                  color: Colors.blueGrey.shade600,
+                  color: appMutedTextColor(context),
                   fontWeight: FontWeight.w600,
                   height: 1.45,
                 ),
@@ -140,12 +140,12 @@ class _AboutAppCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: appSurfaceColor(context),
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: const Color(0xFFE2F3F0)),
+        border: Border.all(color: appBorderColor(context)),
         boxShadow: [
           BoxShadow(
-            color: authPrimary.withOpacity(0.08),
+            color: appShadowColor(context),
             blurRadius: 18,
             offset: const Offset(0, 8),
           ),
@@ -158,7 +158,7 @@ class _AboutAppCard extends StatelessWidget {
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              color: const Color(0xFFEAF8F6),
+              color: appTintSurfaceColor(context),
               borderRadius: BorderRadius.circular(16),
             ),
             child: const Icon(Icons.medication_outlined, color: authPrimary),
@@ -168,10 +168,10 @@ class _AboutAppCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'About MediTrack',
                   style: TextStyle(
-                    color: authInk,
+                    color: appTextColor(context),
                     fontSize: 17,
                     fontWeight: FontWeight.w900,
                   ),
@@ -180,7 +180,7 @@ class _AboutAppCard extends StatelessWidget {
                 Text(
                   'MediTrack is a simple medicine reminder app for keeping your storage, schedules, and daily medicine status in one calm place.',
                   style: TextStyle(
-                    color: Colors.blueGrey.shade600,
+                    color: appMutedTextColor(context),
                     fontWeight: FontWeight.w600,
                     height: 1.4,
                   ),
@@ -210,9 +210,9 @@ class _PageIntro extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFFEAF8F6),
+        color: appTintSurfaceColor(context),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: const Color(0xFFE2F3F0)),
+        border: Border.all(color: appBorderColor(context)),
       ),
       child: Row(
         children: [
@@ -232,8 +232,8 @@ class _PageIntro extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
-                    color: authInk,
+                  style: TextStyle(
+                    color: appTextColor(context),
                     fontSize: 20,
                     fontWeight: FontWeight.w900,
                   ),
@@ -242,7 +242,7 @@ class _PageIntro extends StatelessWidget {
                 Text(
                   subtitle,
                   style: TextStyle(
-                    color: Colors.blueGrey.shade600,
+                    color: appMutedTextColor(context),
                     fontWeight: FontWeight.w600,
                     height: 1.35,
                   ),

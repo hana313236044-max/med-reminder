@@ -285,6 +285,7 @@ class _SignupScreenState extends State<SignupScreen>
                 DropdownButtonFormField<String>(
                   value: _selectedBloodType,
                   decoration: authInputDecoration(
+                    context: context,
                     hintText: "Blood type",
                     icon: Icons.bloodtype_outlined,
                     errorText: _bloodTypeError,
@@ -387,9 +388,9 @@ class PasswordChecklist extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFFEAF8F6),
+        color: appTintSurfaceColor(context),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.teal.shade100),
+        border: Border.all(color: appBorderColor(context)),
       ),
       child: Column(
         children: requirements
@@ -405,7 +406,7 @@ class PasswordChecklist extends StatelessWidget {
                       size: 18,
                       color: requirement.isMet
                           ? authPrimary
-                          : Colors.blueGrey.shade300,
+                          : appMutedTextColor(context),
                     ),
                     const SizedBox(width: 8),
                     Expanded(
@@ -413,8 +414,8 @@ class PasswordChecklist extends StatelessWidget {
                         requirement.label,
                         style: TextStyle(
                           color: requirement.isMet
-                              ? authInk
-                              : Colors.blueGrey.shade500,
+                              ? appTextColor(context)
+                              : appMutedTextColor(context),
                           fontSize: 13,
                           fontWeight: requirement.isMet
                               ? FontWeight.w700

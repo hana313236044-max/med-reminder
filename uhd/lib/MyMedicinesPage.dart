@@ -68,7 +68,7 @@ class _MyMedicinesPageState extends State<MyMedicinesPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: appScaffoldColor(context),
       appBar: AppBar(
         backgroundColor: authPrimary,
         foregroundColor: authInk,
@@ -83,10 +83,10 @@ class _MyMedicinesPageState extends State<MyMedicinesPage> {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(18, 8, 18, 28),
           children: [
-            const Text(
+            Text(
               'My medicines',
               style: TextStyle(
-                color: authInk,
+                color: appTextColor(context),
                 fontSize: 28,
                 fontWeight: FontWeight.w900,
               ),
@@ -95,7 +95,7 @@ class _MyMedicinesPageState extends State<MyMedicinesPage> {
             Text(
               'Saved medicine storage for future reminders.',
               style: TextStyle(
-                color: Colors.blueGrey.shade600,
+                color: appMutedTextColor(context),
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -170,9 +170,9 @@ class _EmptyMedicines extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: const Color(0xFFEAF8F6),
+        color: appTintSurfaceColor(context),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.teal.shade100),
+        border: Border.all(color: appBorderColor(context)),
       ),
       child: Column(
         children: [
@@ -182,10 +182,10 @@ class _EmptyMedicines extends StatelessWidget {
             color: Colors.teal.shade700,
           ),
           const SizedBox(height: 10),
-          const Text(
+          Text(
             'No medicines saved yet',
             style: TextStyle(
-              color: authInk,
+              color: appTextColor(context),
               fontWeight: FontWeight.w800,
               fontSize: 17,
             ),
@@ -194,7 +194,7 @@ class _EmptyMedicines extends StatelessWidget {
           Text(
             'Add medicines here before creating reminders.',
             textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.blueGrey.shade500),
+            style: TextStyle(color: appMutedTextColor(context)),
           ),
         ],
       ),
@@ -218,12 +218,12 @@ class _MedicineCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: appSurfaceColor(context),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.teal.shade50),
+        border: Border.all(color: appBorderColor(context)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: appShadowColor(context, 0.05),
             blurRadius: 14,
             offset: const Offset(0, 8),
           ),
@@ -236,7 +236,7 @@ class _MedicineCard extends StatelessWidget {
             width: 50,
             height: 50,
             decoration: BoxDecoration(
-              color: const Color(0xFFEAF8F6),
+              color: appTintSurfaceColor(context),
               borderRadius: BorderRadius.circular(16),
             ),
             child: const Icon(Icons.medication_outlined, color: authPrimary),
@@ -250,8 +250,8 @@ class _MedicineCard extends StatelessWidget {
                   medicine.name,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: authInk,
+                  style: TextStyle(
+                    color: appTextColor(context),
                     fontSize: 17,
                     fontWeight: FontWeight.w800,
                   ),
@@ -272,7 +272,7 @@ class _MedicineCard extends StatelessWidget {
                     medicine.notes!,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(color: Colors.blueGrey.shade500),
+                    style: TextStyle(color: appMutedTextColor(context)),
                   ),
                 ],
               ],
@@ -304,12 +304,12 @@ class _Chip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: const Color(0xFFEAF8F6),
+        color: appTintSurfaceColor(context),
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
         label,
-        style: const TextStyle(
+        style: TextStyle(
           color: authPrimary,
           fontWeight: FontWeight.w700,
           fontSize: 12,

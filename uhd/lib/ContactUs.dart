@@ -7,7 +7,7 @@ class ContactUsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: appScaffoldColor(context),
       appBar: AppBar(
         backgroundColor: authPrimary,
         foregroundColor: Colors.white,
@@ -58,9 +58,9 @@ class _ContactHero extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFFEAF8F6),
+        color: appTintSurfaceColor(context),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: const Color(0xFFE2F3F0)),
+        border: Border.all(color: appBorderColor(context)),
       ),
       child: Row(
         children: [
@@ -82,10 +82,10 @@ class _ContactHero extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'We are here to help',
                   style: TextStyle(
-                    color: authInk,
+                    color: appTextColor(context),
                     fontSize: 21,
                     fontWeight: FontWeight.w900,
                   ),
@@ -94,7 +94,7 @@ class _ContactHero extends StatelessWidget {
                 Text(
                   'Tell us what is confusing, broken, or missing. MediTrack is built around safer daily medicine habits.',
                   style: TextStyle(
-                    color: Colors.blueGrey.shade600,
+                    color: appMutedTextColor(context),
                     fontWeight: FontWeight.w600,
                     height: 1.35,
                   ),
@@ -126,12 +126,12 @@ class _ContactCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: appSurfaceColor(context),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFE2F3F0)),
+        border: Border.all(color: appBorderColor(context)),
         boxShadow: [
           BoxShadow(
-            color: authPrimary.withOpacity(0.08),
+            color: appShadowColor(context),
             blurRadius: 18,
             offset: const Offset(0, 8),
           ),
@@ -143,7 +143,7 @@ class _ContactCard extends StatelessWidget {
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              color: const Color(0xFFEAF8F6),
+              color: appTintSurfaceColor(context),
               borderRadius: BorderRadius.circular(16),
             ),
             child: Icon(icon, color: authPrimary),
@@ -156,15 +156,15 @@ class _ContactCard extends StatelessWidget {
                 Text(
                   title,
                   style: TextStyle(
-                    color: Colors.blueGrey.shade500,
+                    color: appMutedTextColor(context),
                     fontWeight: FontWeight.w700,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   value,
-                  style: const TextStyle(
-                    color: authInk,
+                  style: TextStyle(
+                    color: appTextColor(context),
                     fontSize: 16,
                     fontWeight: FontWeight.w900,
                   ),
@@ -173,7 +173,7 @@ class _ContactCard extends StatelessWidget {
                 Text(
                   subtitle,
                   style: TextStyle(
-                    color: Colors.blueGrey.shade500,
+                    color: appMutedTextColor(context),
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -207,17 +207,17 @@ class _MessageBoxState extends State<_MessageBox> {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: const Color(0xFFF7FCFB),
+        color: appSoftSurfaceColor(context),
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: const Color(0xFFE2F3F0)),
+        border: Border.all(color: appBorderColor(context)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Send a message',
             style: TextStyle(
-              color: authInk,
+              color: appTextColor(context),
               fontSize: 18,
               fontWeight: FontWeight.w900,
             ),
@@ -230,14 +230,14 @@ class _MessageBoxState extends State<_MessageBox> {
             decoration: InputDecoration(
               hintText: 'Write your feedback or question...',
               filled: true,
-              fillColor: Colors.white,
+              fillColor: appSurfaceColor(context),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),
-                borderSide: BorderSide(color: Colors.teal.shade100),
+                borderSide: BorderSide(color: appBorderColor(context)),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),
-                borderSide: BorderSide(color: Colors.teal.shade100),
+                borderSide: BorderSide(color: appBorderColor(context)),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),

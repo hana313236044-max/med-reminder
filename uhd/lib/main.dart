@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:uhd/auth_widgets.dart';
 import 'package:uhd/Splash.dart';
 import 'package:uhd/firebase_options.dart';
 
@@ -19,7 +20,38 @@ class Midterm extends StatelessWidget {
       builder: (_, currentMode, __) {
         return MaterialApp(
           debugShowCheckedModeBanner: false,
-          darkTheme: ThemeData.dark(),
+          theme: ThemeData(
+            useMaterial3: true,
+            brightness: Brightness.light,
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: authPrimary,
+              brightness: Brightness.light,
+            ),
+            scaffoldBackgroundColor: Colors.white,
+          ),
+          darkTheme: ThemeData(
+            useMaterial3: true,
+            brightness: Brightness.dark,
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: authPrimary,
+              brightness: Brightness.dark,
+              surface: appDarkSurface,
+            ),
+            scaffoldBackgroundColor: appDarkBackground,
+            appBarTheme: const AppBarTheme(
+              backgroundColor: authPrimary,
+              foregroundColor: Colors.white,
+            ),
+            cardColor: appDarkSurface,
+            dialogTheme: const DialogThemeData(
+              backgroundColor: appDarkSurface,
+              surfaceTintColor: Colors.transparent,
+            ),
+            snackBarTheme: const SnackBarThemeData(
+              backgroundColor: authPrimary,
+              contentTextStyle: TextStyle(color: Colors.white),
+            ),
+          ),
           themeMode: currentMode,
           home: const SplashScreen(),
         );

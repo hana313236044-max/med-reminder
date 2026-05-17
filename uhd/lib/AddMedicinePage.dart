@@ -134,7 +134,7 @@ class _AddMedicinePageState extends State<AddMedicinePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: appScaffoldColor(context),
       appBar: AppBar(
         backgroundColor: authPrimary,
         foregroundColor: authInk,
@@ -154,8 +154,8 @@ class _AddMedicinePageState extends State<AddMedicinePage> {
           children: [
             Text(
               _isEditing ? 'Update medicine' : 'Add medicine',
-              style: const TextStyle(
-                color: authInk,
+              style: TextStyle(
+                color: appTextColor(context),
                 fontSize: 28,
                 fontWeight: FontWeight.w900,
               ),
@@ -164,7 +164,7 @@ class _AddMedicinePageState extends State<AddMedicinePage> {
             Text(
               'Save medicine details once, then reuse them in reminders.',
               style: TextStyle(
-                color: Colors.blueGrey.shade600,
+                color: appMutedTextColor(context),
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -231,6 +231,7 @@ class _AddMedicinePageState extends State<AddMedicinePage> {
               controller: _notesController,
               maxLines: 3,
               decoration: authInputDecoration(
+                context: context,
                 hintText: 'Notes optional',
                 icon: Icons.notes_outlined,
               ),
@@ -274,6 +275,7 @@ class _AuthDropdown extends StatelessWidget {
     return DropdownButtonFormField<String>(
       value: value,
       decoration: authInputDecoration(
+        context: context,
         hintText: hintText,
         icon: icon,
         errorText: errorText,

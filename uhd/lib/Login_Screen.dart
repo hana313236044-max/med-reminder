@@ -300,9 +300,9 @@ class _LoginScreenState extends State<LoginScreen>
                   child: Container(
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFEAF8F6),
+                      color: appTintSurfaceColor(context),
                       borderRadius: BorderRadius.circular(18),
-                      border: Border.all(color: Colors.teal.shade100),
+                      border: Border.all(color: appBorderColor(context)),
                     ),
                     child: Row(
                       children: [
@@ -315,17 +315,17 @@ class _LoginScreenState extends State<LoginScreen>
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text(
+                              Text(
                                 "Need a quick guide?",
                                 style: TextStyle(
-                                  color: authInk,
+                                  color: appTextColor(context),
                                   fontWeight: FontWeight.w700,
                                 ),
                               ),
                               Text(
                                 "Open Getting Started",
                                 style: TextStyle(
-                                  color: Colors.blueGrey.shade500,
+                                  color: appMutedTextColor(context),
                                   fontSize: 13,
                                 ),
                               ),

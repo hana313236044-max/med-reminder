@@ -51,9 +51,9 @@ class GettingStartedPage extends StatelessWidget {
               width: double.infinity,
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: const Color(0xFFEAF8F6),
+                color: appTintSurfaceColor(context),
                 borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: Colors.teal.shade100),
+                border: Border.all(color: appBorderColor(context)),
               ),
               child: Row(
                 children: [
@@ -61,7 +61,7 @@ class GettingStartedPage extends StatelessWidget {
                     width: 42,
                     height: 42,
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: appSurfaceColor(context),
                       borderRadius: BorderRadius.circular(14),
                     ),
                     child: const Icon(
@@ -74,7 +74,7 @@ class GettingStartedPage extends StatelessWidget {
                     child: Text(
                       'MediTrack helps you keep medicine routines simple, visible, and easy to update.',
                       style: TextStyle(
-                        color: Colors.blueGrey.shade700,
+                        color: appMutedTextColor(context),
                         fontSize: 14,
                         height: 1.35,
                         fontWeight: FontWeight.w500,
@@ -126,12 +126,12 @@ class StepCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: appSurfaceColor(context),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.teal.shade50),
+        border: Border.all(color: appBorderColor(context)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: appShadowColor(context, 0.05),
             blurRadius: 14,
             offset: const Offset(0, 8),
           ),
@@ -147,7 +147,7 @@ class StepCard extends StatelessWidget {
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFEAF8F6),
+                  color: appTintSurfaceColor(context),
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Icon(icon, color: authPrimary, size: 25),
@@ -162,7 +162,10 @@ class StepCard extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: authPrimary,
                     shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white, width: 2),
+                    border: Border.all(
+                      color: appSurfaceColor(context),
+                      width: 2,
+                    ),
                   ),
                   child: Text(
                     stepNumber.toString(),
@@ -183,8 +186,8 @@ class StepCard extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
-                    color: authInk,
+                  style: TextStyle(
+                    color: appTextColor(context),
                     fontSize: 16,
                     fontWeight: FontWeight.w800,
                   ),
@@ -193,7 +196,7 @@ class StepCard extends StatelessWidget {
                 Text(
                   description,
                   style: TextStyle(
-                    color: Colors.blueGrey.shade500,
+                    color: appMutedTextColor(context),
                     fontSize: 14,
                     height: 1.35,
                   ),

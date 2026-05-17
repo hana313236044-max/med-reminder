@@ -3,6 +3,41 @@ import 'package:flutter/material.dart';
 const Color authPrimary = Color(0xFF0F766E);
 const Color authAccent = Color(0xFF14B8A6);
 const Color authInk = Color(0xFF12313A);
+const Color appDarkBackground = Color(0xFF071A1D);
+const Color appDarkSurface = Color(0xFF10282D);
+const Color appDarkSurfaceAlt = Color(0xFF17343A);
+const Color appDarkBorder = Color(0xFF254A50);
+const Color appDarkInk = Color(0xFFEAF7F6);
+const Color appDarkMuted = Color(0xFF9EB8BC);
+
+bool appIsDark(BuildContext context) =>
+    Theme.of(context).brightness == Brightness.dark;
+
+Color appScaffoldColor(BuildContext context) =>
+    appIsDark(context) ? appDarkBackground : Colors.white;
+
+Color appSurfaceColor(BuildContext context) =>
+    appIsDark(context) ? appDarkSurface : Colors.white;
+
+Color appSoftSurfaceColor(BuildContext context) =>
+    appIsDark(context) ? appDarkSurfaceAlt : const Color(0xFFF3FAF9);
+
+Color appTintSurfaceColor(BuildContext context) =>
+    appIsDark(context) ? const Color(0xFF163C3F) : const Color(0xFFEAF8F6);
+
+Color appBorderColor(BuildContext context) =>
+    appIsDark(context) ? appDarkBorder : const Color(0xFFE2F3F0);
+
+Color appTextColor(BuildContext context) =>
+    appIsDark(context) ? appDarkInk : authInk;
+
+Color appMutedTextColor(BuildContext context) =>
+    appIsDark(context) ? appDarkMuted : Colors.blueGrey.shade600;
+
+Color appShadowColor(BuildContext context, [double opacity = 0.08]) =>
+    appIsDark(context)
+        ? Colors.black.withOpacity(opacity + 0.18)
+        : authPrimary.withOpacity(opacity);
 
 class AuthBackground extends StatelessWidget {
   final Widget child;
@@ -57,14 +92,19 @@ class AuthCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = appIsDark(context);
     return ConstrainedBox(
       constraints: BoxConstraints(maxWidth: maxWidth),
       child: Container(
         padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.96),
+          color: isDark
+              ? appDarkSurface.withOpacity(0.96)
+              : Colors.white.withOpacity(0.96),
           borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: Colors.white.withOpacity(0.75)),
+          border: Border.all(
+            color: isDark ? appDarkBorder : Colors.white.withOpacity(0.75),
+          ),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.20),
@@ -115,8 +155,8 @@ class AuthHeader extends StatelessWidget {
         Text(
           title,
           textAlign: TextAlign.center,
-          style: const TextStyle(
-            color: authInk,
+          style: TextStyle(
+            color: appTextColor(context),
             fontSize: 28,
             fontWeight: FontWeight.w800,
           ),
@@ -126,7 +166,7 @@ class AuthHeader extends StatelessWidget {
           subtitle,
           textAlign: TextAlign.center,
           style: TextStyle(
-            color: Colors.blueGrey.shade500,
+            color: appMutedTextColor(context),
             fontSize: 15,
             height: 1.35,
           ),
@@ -166,6 +206,7 @@ class AuthTextField extends StatelessWidget {
       obscureText: obscureText,
       onChanged: onChanged,
       decoration: authInputDecoration(
+        context: context,
         hintText: hintText,
         icon: icon,
         suffixIcon: suffixIcon,
@@ -176,11 +217,13 @@ class AuthTextField extends StatelessWidget {
 }
 
 InputDecoration authInputDecoration({
+  BuildContext? context,
   required String hintText,
   required IconData icon,
   Widget? suffixIcon,
   String? errorText,
 }) {
+  final isDark = context != null && appIsDark(context);
   return InputDecoration(
     hintText: hintText,
     prefixIcon: Icon(icon, color: authPrimary),
@@ -193,11 +236,14 @@ InputDecoration authInputDecoration({
     errorMaxLines: 2,
     errorStyle: const TextStyle(fontWeight: FontWeight.w600),
     filled: true,
-    fillColor: const Color(0xFFF3FAF9),
+    fillColor: isDark ? appDarkSurfaceAlt : const Color(0xFFF3FAF9),
+    hintStyle: TextStyle(color: isDark ? appDarkMuted : null),
     contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
     enabledBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(16),
-      borderSide: BorderSide(color: Colors.teal.shade50),
+      borderSide: BorderSide(
+        color: isDark ? appDarkBorder : Colors.teal.shade50,
+      ),
     ),
     focusedBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(16),
@@ -205,7 +251,9 @@ InputDecoration authInputDecoration({
     ),
     border: OutlineInputBorder(
       borderRadius: BorderRadius.circular(16),
-      borderSide: BorderSide(color: Colors.teal.shade50),
+      borderSide: BorderSide(
+        color: isDark ? appDarkBorder : Colors.teal.shade50,
+      ),
     ),
     focusedErrorBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(16),

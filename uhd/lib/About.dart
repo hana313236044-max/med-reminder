@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:uhd/auth_widgets.dart';
 
 class AboutPage extends StatefulWidget {
   const AboutPage({super.key});
@@ -46,11 +47,11 @@ class _AboutPageState extends State<AboutPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFFF5FA),
+      backgroundColor: appScaffoldColor(context),
       appBar: AppBar(
         title: const Text("About"),
-        backgroundColor: const Color.fromARGB(255, 72, 202, 246),
-        foregroundColor: const Color.fromARGB(255, 210, 226, 233),
+        backgroundColor: authPrimary,
+        foregroundColor: Colors.white,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
@@ -86,19 +87,20 @@ class _AboutPageState extends State<AboutPage> {
 
             const SizedBox(height: 20),
 
-            const Text(
+            Text(
               "About This Application",
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
-                color: Color.fromARGB(255, 72, 202, 246),
+                color: appTextColor(context),
               ),
             ),
 
             const SizedBox(height: 20),
 
             _infoCard(
+              context: context,
               title: "What is this application?",
               icon: Icons.info_outline,
               content:
@@ -107,6 +109,7 @@ class _AboutPageState extends State<AboutPage> {
             ),
 
             _infoCard(
+              context: context,
               title: "How to use the application",
               icon: Icons.touch_app,
               content:
@@ -117,6 +120,7 @@ class _AboutPageState extends State<AboutPage> {
             ),
 
             _infoCard(
+              context: context,
               title: "Goal of this application",
               icon: Icons.flag_outlined,
               content:
@@ -126,10 +130,10 @@ class _AboutPageState extends State<AboutPage> {
 
             const SizedBox(height: 24),
 
-            const Text(
+            Text(
               "Version 1.0.0",
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey),
+              style: TextStyle(color: appMutedTextColor(context)),
             ),
           ],
         ),
@@ -139,11 +143,13 @@ class _AboutPageState extends State<AboutPage> {
 
   // helper method for cards
   static Widget _infoCard({
+    required BuildContext context,
     required String title,
     required IconData icon,
     required String content,
   }) {
     return Card(
+      color: appSurfaceColor(context),
       elevation: 4,
       margin: const EdgeInsets.only(bottom: 16),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
@@ -154,20 +160,23 @@ class _AboutPageState extends State<AboutPage> {
           children: [
             Row(
               children: [
-                Icon(icon, color: const Color.fromARGB(255, 72, 202, 246)),
+                Icon(icon, color: authPrimary),
                 const SizedBox(width: 8),
                 Text(
                   title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
-                    color: Color.fromARGB(255, 141, 17, 8),
+                    color: appTextColor(context),
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 10),
-            Text(content, style: const TextStyle(fontSize: 15)),
+            Text(
+              content,
+              style: TextStyle(color: appMutedTextColor(context), fontSize: 15),
+            ),
           ],
         ),
       ),

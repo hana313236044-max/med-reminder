@@ -143,17 +143,17 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen>
                   width: double.infinity,
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFEAF8F6),
+                    color: appTintSurfaceColor(context),
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Colors.teal.shade100),
+                    border: Border.all(color: appBorderColor(context)),
                   ),
                   child: Column(
                     children: [
                       Text(
                         widget.email,
                         textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          color: authInk,
+                        style: TextStyle(
+                          color: appTextColor(context),
                           fontSize: 16,
                           fontWeight: FontWeight.w800,
                         ),
@@ -163,7 +163,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen>
                         "Open the link in your inbox, then return here and check verification.",
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          color: Colors.blueGrey.shade500,
+                          color: appMutedTextColor(context),
                           height: 1.35,
                         ),
                       ),

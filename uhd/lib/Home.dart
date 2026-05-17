@@ -398,7 +398,7 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: appScaffoldColor(context),
       appBar: AppBar(
         iconTheme: const IconThemeData(color: Colors.white),
         backgroundColor: authPrimary,
@@ -623,16 +623,16 @@ class _SelectedDateCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: appSurfaceColor(context),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.teal.shade50),
+        border: Border.all(color: appBorderColor(context)),
       ),
       child: Row(
         children: [
           IconButton(
             tooltip: 'Previous day',
             onPressed: onPrevious,
-            icon: const Icon(Icons.chevron_left, color: authInk),
+            icon: Icon(Icons.chevron_left, color: appTextColor(context)),
           ),
           Expanded(
             child: InkWell(
@@ -644,8 +644,8 @@ class _SelectedDateCard extends StatelessWidget {
                   children: [
                     Text(
                       _label,
-                      style: const TextStyle(
-                        color: authInk,
+                      style: TextStyle(
+                        color: appTextColor(context),
                         fontSize: 18,
                         fontWeight: FontWeight.w900,
                       ),
@@ -654,7 +654,7 @@ class _SelectedDateCard extends StatelessWidget {
                     Text(
                       '${selectedDate.year}/${selectedDate.month}/${selectedDate.day}',
                       style: TextStyle(
-                        color: Colors.blueGrey.shade500,
+                        color: appMutedTextColor(context),
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -666,7 +666,7 @@ class _SelectedDateCard extends StatelessWidget {
           IconButton(
             tooltip: 'Next day',
             onPressed: onNext,
-            icon: const Icon(Icons.chevron_right, color: authInk),
+            icon: Icon(Icons.chevron_right, color: appTextColor(context)),
           ),
         ],
       ),
@@ -698,12 +698,12 @@ class _AppBottomNavigation extends StatelessWidget {
         margin: const EdgeInsets.fromLTRB(14, 0, 14, 12),
         padding: const EdgeInsets.all(7),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: appSurfaceColor(context),
           borderRadius: BorderRadius.circular(22),
-          border: Border.all(color: const Color(0xFFE2F3F0)),
+          border: Border.all(color: appBorderColor(context)),
           boxShadow: [
             BoxShadow(
-              color: authPrimary.withOpacity(0.14),
+              color: appShadowColor(context, 0.14),
               blurRadius: 22,
               offset: const Offset(0, 10),
             ),
@@ -772,7 +772,7 @@ class _BottomNavItem extends StatelessWidget {
           children: [
             Icon(
               selected ? data.selectedIcon : data.icon,
-              color: selected ? Colors.white : Colors.blueGrey.shade400,
+              color: selected ? Colors.white : appMutedTextColor(context),
               size: 22,
             ),
             const SizedBox(height: 3),
@@ -780,7 +780,7 @@ class _BottomNavItem extends StatelessWidget {
               child: Text(
                 data.label,
                 style: TextStyle(
-                  color: selected ? Colors.white : Colors.blueGrey.shade500,
+                  color: selected ? Colors.white : appMutedTextColor(context),
                   fontSize: 11,
                   fontWeight: selected ? FontWeight.w900 : FontWeight.w700,
                 ),
@@ -815,8 +815,8 @@ class _HomeHeader extends StatelessWidget {
       children: [
         Text(
           'Hi, $userName',
-          style: const TextStyle(
-            color: authInk,
+          style: TextStyle(
+            color: appTextColor(context),
             fontSize: 28,
             fontWeight: FontWeight.w900,
           ),
@@ -825,7 +825,7 @@ class _HomeHeader extends StatelessWidget {
         Text(
           'Your reminders for the selected day',
           style: TextStyle(
-            color: Colors.blueGrey.shade600,
+            color: appMutedTextColor(context),
             fontWeight: FontWeight.w700,
           ),
         ),
@@ -877,9 +877,9 @@ class _QuickAction extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: appSurfaceColor(context),
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: Colors.teal.shade50),
+          border: Border.all(color: appBorderColor(context)),
         ),
         child: Row(
           children: [
@@ -887,7 +887,7 @@ class _QuickAction extends StatelessWidget {
               width: 42,
               height: 42,
               decoration: BoxDecoration(
-                color: const Color(0xFFEAF8F6),
+                color: appTintSurfaceColor(context),
                 borderRadius: BorderRadius.circular(14),
               ),
               child: Icon(icon, color: authPrimary),
@@ -898,8 +898,8 @@ class _QuickAction extends StatelessWidget {
               children: [
                 Text(
                   value,
-                  style: const TextStyle(
-                    color: authInk,
+                  style: TextStyle(
+                    color: appTextColor(context),
                     fontSize: 20,
                     fontWeight: FontWeight.w900,
                   ),
@@ -907,7 +907,7 @@ class _QuickAction extends StatelessWidget {
                 Text(
                   label,
                   style: TextStyle(
-                    color: Colors.blueGrey.shade500,
+                    color: appMutedTextColor(context),
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -955,15 +955,15 @@ class _FilterBar extends StatelessWidget {
             child: ChoiceChip(
               selected: isSelected,
               onSelected: (_) => onSelected(filter),
-              backgroundColor: Colors.white.withOpacity(0.78),
-              selectedColor: Colors.white,
+              backgroundColor: appSurfaceColor(context).withOpacity(0.78),
+              selectedColor: appSurfaceColor(context),
               side: BorderSide(
-                color: isSelected ? authPrimary : Colors.white.withOpacity(0.6),
+                color: isSelected ? authPrimary : appBorderColor(context),
               ),
               label: Text(
                 '$label ${countFor(filter)}',
                 style: TextStyle(
-                  color: isSelected ? authPrimary : authInk,
+                  color: isSelected ? authPrimary : appTextColor(context),
                   fontWeight: FontWeight.w800,
                 ),
               ),
@@ -1043,7 +1043,7 @@ class _ReminderCard extends StatelessWidget {
                 width: 44,
                 height: 44,
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: appSurfaceColor(context),
                   borderRadius: BorderRadius.circular(15),
                 ),
                 child: Icon(_statusIcon(), color: statusColor),
@@ -1054,8 +1054,8 @@ class _ReminderCard extends StatelessWidget {
                   reminder.medicineName,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: authInk,
+                  style: TextStyle(
+                    color: appTextColor(context),
                     fontSize: 18,
                     fontWeight: FontWeight.w900,
                   ),
@@ -1100,8 +1100,8 @@ class _ReminderCard extends StatelessWidget {
               const SizedBox(width: 8),
               Text(
                 '${reminder.scheduledAt.year}/${reminder.scheduledAt.month}/${reminder.scheduledAt.day}  ${reminder.time.format(context)}',
-                style: const TextStyle(
-                  color: authInk,
+                style: TextStyle(
+                  color: appTextColor(context),
                   fontWeight: FontWeight.w800,
                 ),
               ),
@@ -1111,7 +1111,7 @@ class _ReminderCard extends StatelessWidget {
           Text(
             '${reminder.quantity} ${reminder.quantityUnit}',
             style: TextStyle(
-              color: Colors.blueGrey.shade600,
+              color: appMutedTextColor(context),
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -1121,7 +1121,7 @@ class _ReminderCard extends StatelessWidget {
               reminder.notes!,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(color: Colors.blueGrey.shade500),
+              style: TextStyle(color: appMutedTextColor(context)),
             ),
           ],
           const SizedBox(height: 14),
@@ -1178,7 +1178,7 @@ class _Tag extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: color ?? const Color(0xFFEAF8F6),
+        color: color ?? appTintSurfaceColor(context),
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
@@ -1215,9 +1215,9 @@ class _EmptyReminderState extends StatelessWidget {
         width: double.infinity,
         padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.96),
+          color: appSurfaceColor(context).withOpacity(0.96),
           borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: Colors.white.withOpacity(0.65)),
+          border: Border.all(color: appBorderColor(context)),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -1230,8 +1230,8 @@ class _EmptyReminderState extends StatelessWidget {
             const SizedBox(height: 12),
             Text(
               title ?? 'No reminders here',
-              style: const TextStyle(
-                color: authInk,
+              style: TextStyle(
+                color: appTextColor(context),
                 fontSize: 20,
                 fontWeight: FontWeight.w900,
               ),
@@ -1243,7 +1243,7 @@ class _EmptyReminderState extends StatelessWidget {
                       ? 'Create a reminder from one of your saved medicines.'
                       : 'Add medicines first, then create reminders from them.'),
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.blueGrey.shade500),
+              style: TextStyle(color: appMutedTextColor(context)),
             ),
             const SizedBox(height: 18),
             AuthPrimaryButton(
@@ -1287,10 +1287,10 @@ class _MedicineTab extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.fromLTRB(18, 16, 18, 96),
       children: [
-        const Text(
+        Text(
           'Medicine',
           style: TextStyle(
-            color: authInk,
+            color: appTextColor(context),
             fontSize: 28,
             fontWeight: FontWeight.w900,
           ),
@@ -1299,7 +1299,7 @@ class _MedicineTab extends StatelessWidget {
         Text(
           'Saved medicines for reminders and tracking.',
           style: TextStyle(
-            color: Colors.blueGrey.shade600,
+            color: appMutedTextColor(context),
             fontWeight: FontWeight.w700,
           ),
         ),
@@ -1354,10 +1354,10 @@ class _ProfileTab extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.fromLTRB(18, 16, 18, 96),
       children: [
-        const Text(
+        Text(
           'Profile',
           style: TextStyle(
-            color: authInk,
+            color: appTextColor(context),
             fontSize: 28,
             fontWeight: FontWeight.w900,
           ),
@@ -1366,12 +1366,12 @@ class _ProfileTab extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: appSurfaceColor(context),
             borderRadius: BorderRadius.circular(22),
-            border: Border.all(color: const Color(0xFFE2F3F0)),
+            border: Border.all(color: appBorderColor(context)),
             boxShadow: [
               BoxShadow(
-                color: authPrimary.withOpacity(0.08),
+                color: appShadowColor(context),
                 blurRadius: 18,
                 offset: const Offset(0, 9),
               ),
@@ -1394,8 +1394,8 @@ class _ProfileTab extends StatelessWidget {
                       children: [
                         Text(
                           userName,
-                          style: const TextStyle(
-                            color: authInk,
+                        style: TextStyle(
+                            color: appTextColor(context),
                             fontSize: 22,
                             fontWeight: FontWeight.w900,
                           ),
@@ -1403,7 +1403,7 @@ class _ProfileTab extends StatelessWidget {
                         Text(
                           'MediTrack user',
                           style: TextStyle(
-                            color: Colors.blueGrey.shade500,
+                            color: appMutedTextColor(context),
                             fontWeight: FontWeight.w700,
                           ),
                         ),
@@ -1485,9 +1485,9 @@ class _ProfileInfoTile extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFFF7FCFB),
+        color: appSoftSurfaceColor(context),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFE2F3F0)),
+        border: Border.all(color: appBorderColor(context)),
       ),
       child: Row(
         children: [
@@ -1495,7 +1495,7 @@ class _ProfileInfoTile extends StatelessWidget {
             width: 42,
             height: 42,
             decoration: BoxDecoration(
-              color: const Color(0xFFEAF8F6),
+              color: appTintSurfaceColor(context),
               borderRadius: BorderRadius.circular(14),
             ),
             child: Icon(data.icon, color: authPrimary, size: 22),
@@ -1509,7 +1509,7 @@ class _ProfileInfoTile extends StatelessWidget {
                 Text(
                   data.label,
                   style: TextStyle(
-                    color: Colors.blueGrey.shade500,
+                    color: appMutedTextColor(context),
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
                   ),
@@ -1519,8 +1519,8 @@ class _ProfileInfoTile extends StatelessWidget {
                   data.value,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: authInk,
+                  style: TextStyle(
+                    color: appTextColor(context),
                     fontSize: 15,
                     fontWeight: FontWeight.w900,
                   ),
@@ -1543,9 +1543,9 @@ class _EmptyMedicineInline extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: const Color(0xFFEAF8F6),
+        color: appTintSurfaceColor(context),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.teal.shade100),
+        border: Border.all(color: appBorderColor(context)),
       ),
       child: Column(
         children: [
@@ -1555,10 +1555,10 @@ class _EmptyMedicineInline extends StatelessWidget {
             color: Colors.teal.shade700,
           ),
           const SizedBox(height: 10),
-          const Text(
+          Text(
             'No medicines saved yet',
             style: TextStyle(
-              color: authInk,
+              color: appTextColor(context),
               fontWeight: FontWeight.w800,
               fontSize: 17,
             ),
@@ -1585,12 +1585,12 @@ class _MedicineInlineCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: appSurfaceColor(context),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.teal.shade50),
+        border: Border.all(color: appBorderColor(context)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: appShadowColor(context, 0.05),
             blurRadius: 14,
             offset: const Offset(0, 8),
           ),
@@ -1603,7 +1603,7 @@ class _MedicineInlineCard extends StatelessWidget {
             width: 50,
             height: 50,
             decoration: BoxDecoration(
-              color: const Color(0xFFEAF8F6),
+              color: appTintSurfaceColor(context),
               borderRadius: BorderRadius.circular(16),
             ),
             child: const Icon(Icons.medication_outlined, color: authPrimary),
@@ -1617,8 +1617,8 @@ class _MedicineInlineCard extends StatelessWidget {
                   medicine.name,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: authInk,
+                  style: TextStyle(
+                    color: appTextColor(context),
                     fontSize: 17,
                     fontWeight: FontWeight.w800,
                   ),
@@ -1640,7 +1640,7 @@ class _MedicineInlineCard extends StatelessWidget {
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      color: Colors.blueGrey.shade500,
+                      color: appMutedTextColor(context),
                       fontWeight: FontWeight.w600,
                     ),
                   ),

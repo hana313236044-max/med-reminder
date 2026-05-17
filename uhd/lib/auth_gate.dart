@@ -59,9 +59,9 @@ class _LoadingScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      backgroundColor: Colors.white,
-      body: Center(child: CircularProgressIndicator(color: authPrimary)),
+    return Scaffold(
+      backgroundColor: appScaffoldColor(context),
+      body: const Center(child: CircularProgressIndicator(color: authPrimary)),
     );
   }
 }
