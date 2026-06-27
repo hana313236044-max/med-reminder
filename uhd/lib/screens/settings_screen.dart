@@ -271,6 +271,22 @@ class _AppSettingsState extends State<AppSettings> {
       }
     }
 
+    final medicalProfileSnapshot = await userRef.collection('medicalProfile').get();
+    for (final profileDoc in medicalProfileSnapshot.docs) {
+      for (final collectionName in [
+        'allergies',
+        'conditions',
+        'emergencyContacts',
+      ]) {
+        final nestedSnapshot =
+            await profileDoc.reference.collection(collectionName).get();
+        for (final doc in nestedSnapshot.docs) {
+          batch.delete(doc.reference);
+        }
+      }
+      batch.delete(profileDoc.reference);
+    }
+
     batch.delete(userRef);
     await batch.commit();
   }

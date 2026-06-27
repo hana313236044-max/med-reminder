@@ -106,7 +106,9 @@ class _SignupScreenState extends State<SignupScreen>
       }
 
       await user.updateDisplayName(username);
-      await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+      final userRef = FirebaseFirestore.instance.collection('users').doc(user.uid);
+      final batch = FirebaseFirestore.instance.batch();
+      batch.set(userRef, {
         'uid': user.uid,
         'username': username,
         'email': email,
@@ -115,6 +117,19 @@ class _SignupScreenState extends State<SignupScreen>
         'createdAt': FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
       });
+      batch.set(
+        userRef.collection('medicalProfile').doc('profile'),
+        {
+          'fullName': username,
+          'bloodType': _selectedBloodType!,
+          'sex': 'Prefer not to say',
+          'noKnownAllergies': false,
+          'noKnownConditions': false,
+          'createdAt': FieldValue.serverTimestamp(),
+          'updatedAt': FieldValue.serverTimestamp(),
+        },
+      );
+      await batch.commit();
       await user.sendEmailVerification();
 
       if (!mounted) return;

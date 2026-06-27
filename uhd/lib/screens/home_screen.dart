@@ -6,6 +6,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:uhd/screens/add_medicine_screen.dart';
 import 'package:uhd/screens/add_reminder_screen.dart';
+import 'package:uhd/screens/medical_profile_page.dart';
 import 'package:uhd/screens/settings_screen.dart';
 import 'package:uhd/screens/statistics_page.dart';
 import 'package:uhd/services/statistics_service.dart';

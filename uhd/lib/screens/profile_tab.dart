@@ -123,7 +123,139 @@ class _ProfileTab extends StatelessWidget {
             ],
           ),
         ),
+        const SizedBox(height: 14),
+        const _MedicalProfileActionEntry(),
       ],
+    );
+  }
+}
+
+class _MedicalProfileActionEntry extends StatefulWidget {
+  const _MedicalProfileActionEntry();
+
+  @override
+  State<_MedicalProfileActionEntry> createState() =>
+      _MedicalProfileActionEntryState();
+}
+
+class _MedicalProfileActionEntryState extends State<_MedicalProfileActionEntry> {
+  late final Future<String> _languageFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _languageFuture = _loadLanguage();
+  }
+
+  Future<String> _loadLanguage() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return 'English';
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .collection('settings')
+          .doc('app')
+          .get();
+      return snapshot.data()?['language'] as String? ?? 'English';
+    } catch (_) {
+      return 'English';
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<String>(
+      future: _languageFuture,
+      builder: (context, snapshot) {
+        final strings = MedicalProfileStrings(snapshot.data ?? 'English');
+        return _ProfileActionTile(
+          icon: Icons.health_and_safety_outlined,
+          title: strings.t('title'),
+          subtitle: strings.t('profileTileSubtitle'),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const MedicalProfilePage()),
+            );
+          },
+        );
+      },
+    );
+  }
+}
+
+class _ProfileActionTile extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  const _ProfileActionTile({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(20),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: appSurfaceColor(context),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: appBorderColor(context)),
+          boxShadow: [
+            BoxShadow(
+              color: appShadowColor(context, 0.05),
+              blurRadius: 14,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 46,
+              height: 46,
+              decoration: BoxDecoration(
+                color: appTintSurfaceColor(context),
+                borderRadius: BorderRadius.circular(15),
+              ),
+              child: Icon(icon, color: authPrimary),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      color: appTextColor(context),
+                      fontSize: 16,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      color: appMutedTextColor(context),
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(Icons.chevron_right, color: appMutedTextColor(context)),
+          ],
+        ),
+      ),
     );
   }
 }
