@@ -7,8 +7,11 @@ import 'package:flutter/material.dart';
 import 'package:uhd/screens/add_medicine_screen.dart';
 import 'package:uhd/screens/add_reminder_screen.dart';
 import 'package:uhd/screens/settings_screen.dart';
+import 'package:uhd/screens/statistics_page.dart';
+import 'package:uhd/services/statistics_service.dart';
 import 'package:uhd/widgets/app_widgets.dart';
 import 'package:uhd/models/medicine_models.dart';
+import 'package:uhd/models/statistics_model.dart';
 
 part 'home_dashboard_widgets.dart';
 part 'reminder_widgets.dart';
@@ -65,6 +68,15 @@ class _HomePageState extends State<HomePage> {
         .collection('users')
         .doc(uid)
         .collection('reminders');
+  }
+
+  CollectionReference<Map<String, dynamic>>? get _intakeLogsRef {
+    final uid = _userId;
+    if (uid == null) return null;
+    return FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .collection('intakeLogs');
   }
 
   @override
@@ -229,7 +241,17 @@ class _HomePageState extends State<HomePage> {
 
     final medicinesRef = _medicinesRef;
     final remindersRef = _remindersRef;
+    final intakeLogsRef = _intakeLogsRef;
     if (medicinesRef == null || remindersRef == null) return;
+
+    final numericLogSnapshot = intakeLogsRef == null
+        ? null
+        : await intakeLogsRef.where('medicineId', isEqualTo: medicineId).get();
+    final stringLogSnapshot = intakeLogsRef == null
+        ? null
+        : await intakeLogsRef
+              .where('medicineId', isEqualTo: medicineId.toString())
+              .get();
 
     final batch = FirebaseFirestore.instance.batch();
     batch.delete(medicinesRef.doc(medicineId.toString()));
@@ -238,12 +260,24 @@ class _HomePageState extends State<HomePage> {
         batch.delete(remindersRef.doc(reminder.id.toString()));
       }
     }
+    final deletedLogIds = <String>{};
+    for (final doc in numericLogSnapshot?.docs ?? const []) {
+      deletedLogIds.add(doc.id);
+      batch.delete(doc.reference);
+    }
+    for (final doc in stringLogSnapshot?.docs ?? const []) {
+      if (deletedLogIds.add(doc.id)) {
+        batch.delete(doc.reference);
+      }
+    }
     await batch.commit();
   }
 
   Future<void> _saveReminders(List<MedicationReminder> reminders) async {
     final remindersRef = _remindersRef;
-    if (remindersRef == null) return;
+    final intakeLogsRef = _intakeLogsRef;
+    final uid = _userId;
+    if (remindersRef == null || intakeLogsRef == null || uid == null) return;
 
     final batch = FirebaseFirestore.instance.batch();
     for (final reminder in reminders) {
@@ -251,6 +285,19 @@ class _HomePageState extends State<HomePage> {
         remindersRef.doc(reminder.id.toString()),
         {
           ...reminder.toFirestore(),
+          'createdAt': FieldValue.serverTimestamp(),
+        },
+        SetOptions(merge: true),
+      );
+      batch.set(
+        intakeLogsRef.doc(_intakeLogId(reminder, reminder.scheduledAt)),
+        {
+          ..._intakeLogData(
+            uid: uid,
+            reminder: reminder,
+            scheduledAt: reminder.scheduledAt,
+            status: IntakeLogStatus.waiting,
+          ),
           'createdAt': FieldValue.serverTimestamp(),
         },
         SetOptions(merge: true),
@@ -273,12 +320,35 @@ class _HomePageState extends State<HomePage> {
     if (!confirmed) return;
 
     final remindersRef = _remindersRef;
-    if (remindersRef == null) return;
+    final intakeLogsRef = _intakeLogsRef;
+    final uid = _userId;
+    if (remindersRef == null || intakeLogsRef == null || uid == null) return;
 
-    await remindersRef.doc(reminder.id.toString()).set({
+    final actionAt = DateTime.now();
+    final delayMinutes = actionAt.difference(reminder.scheduledAt).inMinutes;
+    final status = delayMinutes > StatisticsService.onTimeGraceMinutes
+        ? IntakeLogStatus.delayed
+        : IntakeLogStatus.taken;
+
+    final batch = FirebaseFirestore.instance.batch();
+    batch.set(remindersRef.doc(reminder.id.toString()), {
       'status': ReminderStatus.completed.name,
+      'actionDateTime': Timestamp.fromDate(actionAt),
       'updatedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
+    batch.set(
+      intakeLogsRef.doc(_intakeLogId(reminder, reminder.scheduledAt)),
+      _intakeLogData(
+        uid: uid,
+        reminder: reminder,
+        scheduledAt: reminder.scheduledAt,
+        status: status,
+        actionAt: actionAt,
+        delayMinutes: delayMinutes < 0 ? 0 : delayMinutes,
+      ),
+      SetOptions(merge: true),
+    );
+    await batch.commit();
   }
 
   Future<void> _reschedule(MedicationReminder reminder) async {
@@ -312,14 +382,40 @@ class _HomePageState extends State<HomePage> {
     }
 
     final remindersRef = _remindersRef;
-    if (remindersRef == null) return;
+    final intakeLogsRef = _intakeLogsRef;
+    final uid = _userId;
+    if (remindersRef == null || intakeLogsRef == null || uid == null) return;
 
-    await remindersRef.doc(reminder.id.toString()).set({
+    final actionAt = DateTime.now();
+    final batch = FirebaseFirestore.instance.batch();
+    batch.set(
+      intakeLogsRef.doc(_intakeLogId(reminder, reminder.scheduledAt)),
+      _intakeLogData(
+        uid: uid,
+        reminder: reminder,
+        scheduledAt: reminder.scheduledAt,
+        status: IntakeLogStatus.rescheduled,
+        actionAt: actionAt,
+      ),
+      SetOptions(merge: true),
+    );
+    batch.set(
+      intakeLogsRef.doc(_intakeLogId(reminder, updatedAt)),
+      _intakeLogData(
+        uid: uid,
+        reminder: reminder,
+        scheduledAt: updatedAt,
+        status: IntakeLogStatus.waiting,
+      ),
+      SetOptions(merge: true),
+    );
+    batch.set(remindersRef.doc(reminder.id.toString()), {
       'scheduledAt': Timestamp.fromDate(updatedAt),
       'status': ReminderStatus.waiting.name,
       'isRescheduled': true,
       'updatedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
+    await batch.commit();
   }
 
   Future<void> _deleteReminder(MedicationReminder reminder) async {
@@ -333,8 +429,19 @@ class _HomePageState extends State<HomePage> {
 
     final remindersRef = _remindersRef;
     if (remindersRef == null) return;
+    final intakeLogsRef = _intakeLogsRef;
+    final logSnapshot = intakeLogsRef == null
+        ? null
+        : await intakeLogsRef
+            .where('reminderId', isEqualTo: reminder.id.toString())
+            .get();
 
-    await remindersRef.doc(reminder.id.toString()).delete();
+    final batch = FirebaseFirestore.instance.batch();
+    batch.delete(remindersRef.doc(reminder.id.toString()));
+    for (final doc in logSnapshot?.docs ?? const []) {
+      batch.delete(doc.reference);
+    }
+    await batch.commit();
   }
 
   Future<bool> _confirmAction({
@@ -439,8 +546,10 @@ class _HomePageState extends State<HomePage> {
       case 1:
         return 'Medicine';
       case 2:
-        return 'Settings';
+        return 'Statistics / Insights';
       case 3:
+        return 'Settings';
+      case 4:
         return 'Profile';
       case 0:
       default:
@@ -458,8 +567,10 @@ class _HomePageState extends State<HomePage> {
           onDeleteMedicine: _deleteMedicine,
         );
       case 2:
-        return const AppSettings(showScaffold: false);
+        return StatisticsPage(onMedicineSelected: _openMedicineFromStats);
       case 3:
+        return const AppSettings(showScaffold: false);
+      case 4:
         return _ProfileTab(
           userName: widget.userName,
           email: widget.email,
@@ -593,6 +704,44 @@ class _HomePageState extends State<HomePage> {
         builder: (_) =>
             AddMedicinePage(medicine: medicine, onSaveMedicine: _saveMedicine),
       ),
+    );
+  }
+
+  void _openMedicineFromStats(String medicineId) {
+    for (final medicine in _medicines) {
+      if (medicine.id.toString() == medicineId) {
+        _openEditMedicineFromTab(medicine);
+        return;
+      }
+    }
+    setState(() => _selectedTab = 1);
+  }
+
+  String _intakeLogId(MedicationReminder reminder, DateTime scheduledAt) {
+    return StatisticsService.intakeLogIdFor(
+      reminder.id.toString(),
+      scheduledAt,
+    );
+  }
+
+  Map<String, dynamic> _intakeLogData({
+    required String uid,
+    required MedicationReminder reminder,
+    required DateTime scheduledAt,
+    required IntakeLogStatus status,
+    DateTime? actionAt,
+    int? delayMinutes,
+  }) {
+    return StatisticsService.intakeLogData(
+      userId: uid,
+      medicineId: reminder.medicineId,
+      reminderId: reminder.id.toString(),
+      medicineName: reminder.medicineName,
+      scheduledDateTime: scheduledAt,
+      status: status,
+      scheduleLabel: reminder.scheduleLabel,
+      actionDateTime: actionAt,
+      delayMinutes: delayMinutes,
     );
   }
 }

@@ -259,7 +259,12 @@ class _AppSettingsState extends State<AppSettings> {
     final userRef = firestore.collection('users').doc(uid);
     final batch = firestore.batch();
 
-    for (final collectionName in ['medicines', 'reminders', 'settings']) {
+    for (final collectionName in [
+      'medicines',
+      'reminders',
+      'intakeLogs',
+      'settings',
+    ]) {
       final snapshot = await userRef.collection(collectionName).get();
       for (final doc in snapshot.docs) {
         batch.delete(doc.reference);

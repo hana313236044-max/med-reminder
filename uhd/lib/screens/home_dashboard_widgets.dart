@@ -98,6 +98,7 @@ class _AppBottomNavigation extends StatelessWidget {
     const items = [
       _BottomNavData(Icons.home_outlined, Icons.home, 'Home'),
       _BottomNavData(Icons.medication_outlined, Icons.medication, 'Medicine'),
+      _BottomNavData(Icons.insights_outlined, Icons.insights, 'Insights'),
       _BottomNavData(Icons.settings_outlined, Icons.settings, 'Settings'),
       _BottomNavData(Icons.person_outline, Icons.person, 'Profile'),
     ];
