@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:uhd/screens/auth_gate.dart';
+import 'package:uhd/screens/medicine_library_details_page.dart';
 import 'package:uhd/widgets/app_widgets.dart';
 import 'package:uhd/screens/splash_screen.dart';
 import 'package:uhd/firebase_options.dart';
@@ -54,6 +56,31 @@ class Midterm extends StatelessWidget {
           ),
           themeMode: currentMode,
           home: const SplashScreen(),
+          onGenerateRoute: (settings) {
+            final routeName = settings.name ?? '';
+            if (routeName == '/medicine-library') {
+              return MaterialPageRoute(
+                settings: settings,
+                builder: (_) => const AuthGate(initialHomeTab: 2),
+              );
+            }
+            if (routeName.startsWith('/medicine-library/')) {
+              final medicineId = Uri.decodeComponent(
+                routeName.substring('/medicine-library/'.length),
+              );
+              final args = settings.arguments;
+              return MaterialPageRoute(
+                settings: settings,
+                builder: (_) => MedicineLibraryDetailsPage(
+                  medicineId: medicineId,
+                  onSaveMedicine: args is MedicineLibraryDetailsRouteArguments
+                      ? args.onSaveMedicine
+                      : null,
+                ),
+              );
+            }
+            return null;
+          },
         );
       },
     );

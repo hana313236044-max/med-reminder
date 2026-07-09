@@ -6,11 +6,21 @@ import 'package:uhd/models/medicine_models.dart';
 class AddMedicinePage extends StatefulWidget {
   final Medicine? medicine;
   final Future<void> Function(Medicine) onSaveMedicine;
+  final String? initialName;
+  final String? initialCategory;
+  final String? initialForm;
+  final String? initialAgeGroup;
+  final String? initialNotes;
 
   const AddMedicinePage({
     super.key,
     this.medicine,
     required this.onSaveMedicine,
+    this.initialName,
+    this.initialCategory,
+    this.initialForm,
+    this.initialAgeGroup,
+    this.initialNotes,
   });
 
   @override
@@ -31,28 +41,53 @@ class _AddMedicinePageState extends State<AddMedicinePage> {
     'Digestive',
     'Mental Health',
     'Skin Care',
+    'Allergy',
+    'Cold and Flu',
+    'Stomach',
+    'Blood Pressure',
+    'Asthma',
+    'Skin',
+    'Eye and Ear',
+    'Heart',
+    'Anti-inflammatory',
+    'Antifungal',
     'Hormonal',
   ];
 
   final List<String> _forms = const [
     'Pills',
+    'Tablet',
+    'Capsule',
     'Syrup',
+    'Liquid',
     'Eye drops',
+    'Eye Drops',
+    'Ear Drops',
+    'Drops',
     'Nose drops',
     'Injection',
     'Inhaler',
     'Cream',
+    'Ointment',
+    'Lotion',
     'Gel',
     'Powder',
     'Spray',
+    'Patch',
+    'Suppository',
+    'Chewable Tablet',
   ];
 
   final List<String> _ageGroups = const [
     'Adults',
+    'Adult',
     'Kids',
+    'Child',
     'Infants',
+    'Infant',
     'Teens',
     'Seniors',
+    'Elderly',
     'All ages',
   ];
 
@@ -77,6 +112,16 @@ class _AddMedicinePageState extends State<AddMedicinePage> {
       _category = medicine.category;
       _form = medicine.form;
       _ageGroup = medicine.ageGroup;
+    } else {
+      _nameController.text = widget.initialName ?? '';
+      _notesController.text = widget.initialNotes ?? '';
+      _category = _categories.contains(widget.initialCategory)
+          ? widget.initialCategory
+          : null;
+      _form = _forms.contains(widget.initialForm) ? widget.initialForm : null;
+      _ageGroup = _ageGroups.contains(widget.initialAgeGroup)
+          ? widget.initialAgeGroup
+          : null;
     }
   }
 

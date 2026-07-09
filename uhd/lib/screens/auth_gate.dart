@@ -8,7 +8,9 @@ import 'package:uhd/screens/verify_email_screen.dart';
 import 'package:uhd/widgets/app_widgets.dart';
 
 class AuthGate extends StatelessWidget {
-  const AuthGate({super.key});
+  final int initialHomeTab;
+
+  const AuthGate({super.key, this.initialHomeTab = 0});
 
   @override
   Widget build(BuildContext context) {
@@ -40,6 +42,7 @@ class AuthGate extends StatelessWidget {
 
             final data = profileSnapshot.data?.data() ?? {};
             return HomePage(
+              initialTab: initialHomeTab,
               userName:
                   (data['username'] as String?) ??
                   user.displayName ??

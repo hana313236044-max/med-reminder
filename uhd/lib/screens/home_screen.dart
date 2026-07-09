@@ -7,6 +7,8 @@ import 'package:flutter/material.dart';
 import 'package:uhd/screens/add_medicine_screen.dart';
 import 'package:uhd/screens/add_reminder_screen.dart';
 import 'package:uhd/screens/medicine_inventory_page.dart';
+import 'package:uhd/screens/medicine_library_details_page.dart';
+import 'package:uhd/screens/medicine_library_page.dart';
 import 'package:uhd/screens/medical_profile_page.dart';
 import 'package:uhd/screens/settings_screen.dart';
 import 'package:uhd/screens/statistics_page.dart';
@@ -24,6 +26,7 @@ part 'profile_tab.dart';
 enum ReminderFilter { all, completed, delayed, waiting, notTaken }
 
 class HomePage extends StatefulWidget {
+  final int initialTab;
   final String userName;
   final String email;
   final String age;
@@ -31,6 +34,7 @@ class HomePage extends StatefulWidget {
 
   const HomePage({
     super.key,
+    this.initialTab = 0,
     required this.userName,
     this.email = 'Not added',
     this.age = 'Not added',
@@ -86,6 +90,9 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
+    _selectedTab = widget.initialTab >= 0 && widget.initialTab <= 6
+        ? widget.initialTab
+        : 0;
     _listenToUserData();
   }
 
@@ -500,6 +507,10 @@ class _HomePageState extends State<HomePage> {
     setState(() => _selectedTab = 1);
   }
 
+  void _selectTab(int index) {
+    setState(() => _selectedTab = index);
+  }
+
   void _openAddReminder() {
     Navigator.push(
       context,
@@ -533,6 +544,8 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
+    final useNavigationRail = MediaQuery.sizeOf(context).width >= 900;
+    final body = _isLoadingData ? const _LoadingDataState() : _bodyForTab();
     return Scaffold(
       backgroundColor: appScaffoldColor(context),
       appBar: AppBar(
@@ -556,11 +569,23 @@ class _HomePageState extends State<HomePage> {
               icon: const Icon(Icons.add),
               label: Text(_selectedTab == 1 ? 'Medicine' : 'Reminder'),
             ),
-      bottomNavigationBar: _AppBottomNavigation(
-        selectedIndex: _selectedTab,
-        onSelected: (index) => setState(() => _selectedTab = index),
-      ),
-      body: _isLoadingData ? const _LoadingDataState() : _bodyForTab(),
+      bottomNavigationBar: useNavigationRail
+          ? null
+          : _AppBottomNavigation(
+              selectedIndex: _selectedTab,
+              onSelected: _selectTab,
+            ),
+      body: useNavigationRail
+          ? Row(
+              children: [
+                _AppNavigationRail(
+                  selectedIndex: _selectedTab,
+                  onSelected: _selectTab,
+                ),
+                Expanded(child: body),
+              ],
+            )
+          : body,
     );
   }
 
@@ -569,12 +594,14 @@ class _HomePageState extends State<HomePage> {
       case 1:
         return 'Medicine';
       case 2:
-        return 'Medicine Inventory';
+        return 'Medicine Library';
       case 3:
-        return 'Statistics / Insights';
+        return 'Medicine Inventory';
       case 4:
-        return 'Settings';
+        return 'Statistics / Insights';
       case 5:
+        return 'Settings';
+      case 6:
         return 'Profile';
       case 0:
       default:
@@ -592,12 +619,14 @@ class _HomePageState extends State<HomePage> {
           onDeleteMedicine: _deleteMedicine,
         );
       case 2:
-        return MedicineInventoryPage(onMedicineSelected: _openMedicineFromStats);
+        return MedicineLibraryPage(onMedicineSelected: _openLibraryMedicine);
       case 3:
-        return StatisticsPage(onMedicineSelected: _openMedicineFromStats);
+        return MedicineInventoryPage(onMedicineSelected: _openMedicineFromStats);
       case 4:
-        return const AppSettings(showScaffold: false);
+        return StatisticsPage(onMedicineSelected: _openMedicineFromStats);
       case 5:
+        return const AppSettings(showScaffold: false);
+      case 6:
         return _ProfileTab(
           userName: widget.userName,
           email: widget.email,
@@ -730,6 +759,16 @@ class _HomePageState extends State<HomePage> {
       MaterialPageRoute(
         builder: (_) =>
             AddMedicinePage(medicine: medicine, onSaveMedicine: _saveMedicine),
+      ),
+    );
+  }
+
+  void _openLibraryMedicine(String medicineId) {
+    Navigator.pushNamed(
+      context,
+      '/medicine-library/${Uri.encodeComponent(medicineId)}',
+      arguments: MedicineLibraryDetailsRouteArguments(
+        onSaveMedicine: _saveMedicine,
       ),
     );
   }

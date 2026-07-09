@@ -99,6 +99,11 @@ class _AppBottomNavigation extends StatelessWidget {
       _BottomNavData(Icons.home_outlined, Icons.home, 'Home'),
       _BottomNavData(Icons.medication_outlined, Icons.medication, 'Medicine'),
       _BottomNavData(
+        Icons.local_library_outlined,
+        Icons.local_library,
+        'Library',
+      ),
+      _BottomNavData(
         Icons.inventory_2_outlined,
         Icons.inventory_2,
         'Inventory',
@@ -125,17 +130,106 @@ class _AppBottomNavigation extends StatelessWidget {
             ),
           ],
         ),
-        child: Row(
-          children: [
-            for (var i = 0; i < items.length; i++)
-              Expanded(
-                child: _BottomNavItem(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final compact = constraints.maxWidth < 560;
+            if (compact) {
+              return SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    for (var i = 0; i < items.length; i++)
+                      SizedBox(
+                        width: 76,
+                        child: _BottomNavItem(
+                          data: items[i],
+                          selected: selectedIndex == i,
+                          onTap: () => onSelected(i),
+                        ),
+                      ),
+                  ],
+                ),
+              );
+            }
+            return Row(
+              children: [
+                for (var i = 0; i < items.length; i++)
+                  Expanded(
+                    child: _BottomNavItem(
+                      data: items[i],
+                      selected: selectedIndex == i,
+                      onTap: () => onSelected(i),
+                    ),
+                  ),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class _AppNavigationRail extends StatelessWidget {
+  final int selectedIndex;
+  final ValueChanged<int> onSelected;
+
+  const _AppNavigationRail({
+    required this.selectedIndex,
+    required this.onSelected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    const items = [
+      _BottomNavData(Icons.home_outlined, Icons.home, 'Home'),
+      _BottomNavData(Icons.medication_outlined, Icons.medication, 'Medicine'),
+      _BottomNavData(
+        Icons.local_library_outlined,
+        Icons.local_library,
+        'Library',
+      ),
+      _BottomNavData(
+        Icons.inventory_2_outlined,
+        Icons.inventory_2,
+        'Inventory',
+      ),
+      _BottomNavData(Icons.insights_outlined, Icons.insights, 'Insights'),
+      _BottomNavData(Icons.settings_outlined, Icons.settings, 'Settings'),
+      _BottomNavData(Icons.person_outline, Icons.person, 'Profile'),
+    ];
+
+    return SafeArea(
+      right: false,
+      child: Container(
+        width: 108,
+        margin: const EdgeInsets.fromLTRB(14, 14, 0, 14),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+        decoration: BoxDecoration(
+          color: appSurfaceColor(context),
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: appBorderColor(context)),
+          boxShadow: [
+            BoxShadow(
+              color: appShadowColor(context, 0.12),
+              blurRadius: 22,
+              offset: const Offset(0, 10),
+            ),
+          ],
+        ),
+        child: SingleChildScrollView(
+          child: Column(
+            children: [
+              for (var i = 0; i < items.length; i++) ...[
+                _RailNavItem(
                   data: items[i],
                   selected: selectedIndex == i,
                   onTap: () => onSelected(i),
                 ),
-              ),
-          ],
+                if (i != items.length - 1) const SizedBox(height: 8),
+              ],
+            ],
+          ),
         ),
       ),
     );
@@ -200,6 +294,55 @@ class _BottomNavItem extends StatelessWidget {
                   fontSize: 11,
                   fontWeight: selected ? FontWeight.w900 : FontWeight.w700,
                 ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _RailNavItem extends StatelessWidget {
+  final _BottomNavData data;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _RailNavItem({
+    required this.data,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(17),
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 11),
+        decoration: BoxDecoration(
+          color: selected ? authPrimary : Colors.transparent,
+          borderRadius: BorderRadius.circular(17),
+        ),
+        child: Column(
+          children: [
+            Icon(
+              selected ? data.selectedIcon : data.icon,
+              color: selected ? Colors.white : appMutedTextColor(context),
+              size: 23,
+            ),
+            const SizedBox(height: 5),
+            Text(
+              data.label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: selected ? Colors.white : appMutedTextColor(context),
+                fontSize: 11,
+                fontWeight: selected ? FontWeight.w900 : FontWeight.w700,
               ),
             ),
           ],
