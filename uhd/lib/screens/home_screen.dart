@@ -6,9 +6,11 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:uhd/screens/add_medicine_screen.dart';
 import 'package:uhd/screens/add_reminder_screen.dart';
+import 'package:uhd/screens/medicine_inventory_page.dart';
 import 'package:uhd/screens/medical_profile_page.dart';
 import 'package:uhd/screens/settings_screen.dart';
 import 'package:uhd/screens/statistics_page.dart';
+import 'package:uhd/services/inventory_service.dart';
 import 'package:uhd/services/statistics_service.dart';
 import 'package:uhd/widgets/app_widgets.dart';
 import 'package:uhd/models/medicine_models.dart';
@@ -40,6 +42,7 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  final InventoryService _inventoryService = InventoryService();
   final List<MedicationReminder> _reminders = [];
   final List<Medicine> _medicines = [];
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>?
@@ -331,25 +334,44 @@ class _HomePageState extends State<HomePage> {
         ? IntakeLogStatus.delayed
         : IntakeLogStatus.taken;
 
-    final batch = FirebaseFirestore.instance.batch();
-    batch.set(remindersRef.doc(reminder.id.toString()), {
-      'status': ReminderStatus.completed.name,
-      'actionDateTime': Timestamp.fromDate(actionAt),
-      'updatedAt': FieldValue.serverTimestamp(),
-    }, SetOptions(merge: true));
-    batch.set(
-      intakeLogsRef.doc(_intakeLogId(reminder, reminder.scheduledAt)),
-      _intakeLogData(
+    final intakeLogId = _intakeLogId(reminder, reminder.scheduledAt);
+    await FirebaseFirestore.instance.runTransaction((transaction) async {
+      final deduction = await _inventoryService.recordDoseTakenInTransaction(
+        transaction: transaction,
+        userId: uid,
+        reminder: reminder,
+        intakeLogId: intakeLogId,
+        occurrenceId: intakeLogId,
+      );
+      final intakeData = _intakeLogData(
         uid: uid,
         reminder: reminder,
         scheduledAt: reminder.scheduledAt,
         status: status,
         actionAt: actionAt,
         delayMinutes: delayMinutes < 0 ? 0 : delayMinutes,
-      ),
-      SetOptions(merge: true),
-    );
-    await batch.commit();
+      );
+      if (deduction != null) {
+        intakeData.addAll({
+          'inventoryDeducted': true,
+          'inventoryTransactionId': deduction.transactionId,
+          'inventoryQuantityRequested': deduction.requestedQuantity,
+          'inventoryQuantityDeducted': deduction.deductedQuantity,
+          'inventoryDeductionDuplicate': deduction.duplicate,
+        });
+      }
+
+      transaction.set(remindersRef.doc(reminder.id.toString()), {
+        'status': ReminderStatus.completed.name,
+        'actionDateTime': Timestamp.fromDate(actionAt),
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+      transaction.set(
+        intakeLogsRef.doc(intakeLogId),
+        intakeData,
+        SetOptions(merge: true),
+      );
+    });
   }
 
   Future<void> _reschedule(MedicationReminder reminder) async {
@@ -547,10 +569,12 @@ class _HomePageState extends State<HomePage> {
       case 1:
         return 'Medicine';
       case 2:
-        return 'Statistics / Insights';
+        return 'Medicine Inventory';
       case 3:
-        return 'Settings';
+        return 'Statistics / Insights';
       case 4:
+        return 'Settings';
+      case 5:
         return 'Profile';
       case 0:
       default:
@@ -568,10 +592,12 @@ class _HomePageState extends State<HomePage> {
           onDeleteMedicine: _deleteMedicine,
         );
       case 2:
-        return StatisticsPage(onMedicineSelected: _openMedicineFromStats);
+        return MedicineInventoryPage(onMedicineSelected: _openMedicineFromStats);
       case 3:
-        return const AppSettings(showScaffold: false);
+        return StatisticsPage(onMedicineSelected: _openMedicineFromStats);
       case 4:
+        return const AppSettings(showScaffold: false);
+      case 5:
         return _ProfileTab(
           userName: widget.userName,
           email: widget.email,

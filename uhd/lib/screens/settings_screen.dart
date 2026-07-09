@@ -19,6 +19,10 @@ class AppSettings extends StatefulWidget {
 
 class _AppSettingsState extends State<AppSettings> {
   bool notificationsEnabled = true;
+  bool lowStockAlertsEnabled = true;
+  bool expirationAlertsEnabled = true;
+  bool showQuantityInNotifications = false;
+  int expirationWarningDays = 30;
   String selectedLanguage = 'English';
 
   String? get _userId => FirebaseAuth.instance.currentUser?.uid;
@@ -43,8 +47,16 @@ class _AppSettingsState extends State<AppSettings> {
   Widget build(BuildContext context) {
     final body = _SettingsBody(
       notificationsEnabled: notificationsEnabled,
+      lowStockAlertsEnabled: lowStockAlertsEnabled,
+      expirationAlertsEnabled: expirationAlertsEnabled,
+      showQuantityInNotifications: showQuantityInNotifications,
+      expirationWarningDays: expirationWarningDays,
       selectedLanguage: selectedLanguage,
       onNotificationsChanged: _setNotifications,
+      onLowStockAlertsChanged: _setLowStockAlerts,
+      onExpirationAlertsChanged: _setExpirationAlerts,
+      onShowQuantityChanged: _setShowQuantityInNotifications,
+      onExpirationWarningDaysChanged: _setExpirationWarningDays,
       onThemeChanged: _setTheme,
       onLanguageTap: _pickLanguage,
       onFaqTap: _showFaq,
@@ -82,6 +94,13 @@ class _AppSettingsState extends State<AppSettings> {
 
     setState(() {
       notificationsEnabled = data['notificationsEnabled'] as bool? ?? true;
+      lowStockAlertsEnabled = data['lowStockAlertsEnabled'] as bool? ?? true;
+      expirationAlertsEnabled =
+          data['expirationAlertsEnabled'] as bool? ?? true;
+      showQuantityInNotifications =
+          data['showQuantityInNotifications'] as bool? ?? false;
+      expirationWarningDays =
+          (data['expirationWarningDays'] as num?)?.toInt() ?? 30;
       selectedLanguage = data['language'] as String? ?? 'English';
       themeNotifier.value = data['darkMode'] == true
           ? ThemeMode.dark
@@ -112,6 +131,26 @@ class _AppSettingsState extends State<AppSettings> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       ),
     );
+  }
+
+  void _setLowStockAlerts(bool value) {
+    setState(() => lowStockAlertsEnabled = value);
+    _saveSettings({'lowStockAlertsEnabled': value});
+  }
+
+  void _setExpirationAlerts(bool value) {
+    setState(() => expirationAlertsEnabled = value);
+    _saveSettings({'expirationAlertsEnabled': value});
+  }
+
+  void _setShowQuantityInNotifications(bool value) {
+    setState(() => showQuantityInNotifications = value);
+    _saveSettings({'showQuantityInNotifications': value});
+  }
+
+  void _setExpirationWarningDays(int value) {
+    setState(() => expirationWarningDays = value);
+    _saveSettings({'expirationWarningDays': value});
   }
 
   void _setTheme(bool value) {
@@ -263,6 +302,8 @@ class _AppSettingsState extends State<AppSettings> {
       'medicines',
       'reminders',
       'intakeLogs',
+      'medicineInventory',
+      'inventoryTransactions',
       'settings',
     ]) {
       final snapshot = await userRef.collection(collectionName).get();
@@ -345,8 +386,16 @@ class _AppSettingsState extends State<AppSettings> {
 
 class _SettingsBody extends StatelessWidget {
   final bool notificationsEnabled;
+  final bool lowStockAlertsEnabled;
+  final bool expirationAlertsEnabled;
+  final bool showQuantityInNotifications;
+  final int expirationWarningDays;
   final String selectedLanguage;
   final ValueChanged<bool> onNotificationsChanged;
+  final ValueChanged<bool> onLowStockAlertsChanged;
+  final ValueChanged<bool> onExpirationAlertsChanged;
+  final ValueChanged<bool> onShowQuantityChanged;
+  final ValueChanged<int> onExpirationWarningDaysChanged;
   final ValueChanged<bool> onThemeChanged;
   final VoidCallback onLanguageTap;
   final VoidCallback onFaqTap;
@@ -356,8 +405,16 @@ class _SettingsBody extends StatelessWidget {
 
   const _SettingsBody({
     required this.notificationsEnabled,
+    required this.lowStockAlertsEnabled,
+    required this.expirationAlertsEnabled,
+    required this.showQuantityInNotifications,
+    required this.expirationWarningDays,
     required this.selectedLanguage,
     required this.onNotificationsChanged,
+    required this.onLowStockAlertsChanged,
+    required this.onExpirationAlertsChanged,
+    required this.onShowQuantityChanged,
+    required this.onExpirationWarningDaysChanged,
     required this.onThemeChanged,
     required this.onLanguageTap,
     required this.onFaqTap,
@@ -403,6 +460,36 @@ class _SettingsBody extends StatelessWidget {
               subtitle: 'Better for night use',
               value: themeNotifier.value == ThemeMode.dark,
               onChanged: onThemeChanged,
+            ),
+          ],
+        ),
+        const SizedBox(height: 14),
+        _SettingsSection(
+          children: [
+            _SettingsSwitchTile(
+              icon: Icons.inventory_2_outlined,
+              title: 'Low-stock alerts',
+              subtitle: 'Warn when tracked medicine reaches its refill level',
+              value: lowStockAlertsEnabled,
+              onChanged: onLowStockAlertsChanged,
+            ),
+            _SettingsSwitchTile(
+              icon: Icons.event_busy_outlined,
+              title: 'Expiration alerts',
+              subtitle: 'Warn before tracked medicine expiration dates',
+              value: expirationAlertsEnabled,
+              onChanged: onExpirationAlertsChanged,
+            ),
+            _SettingsSwitchTile(
+              icon: Icons.format_list_numbered,
+              title: 'Show quantity in notifications',
+              subtitle: 'Include remaining quantity in inventory alerts',
+              value: showQuantityInNotifications,
+              onChanged: onShowQuantityChanged,
+            ),
+            _ExpirationWarningTile(
+              value: expirationWarningDays,
+              onChanged: onExpirationWarningDaysChanged,
             ),
           ],
         ),
@@ -518,6 +605,54 @@ class _SettingsSwitchTile extends StatelessWidget {
       ),
       value: value,
       onChanged: onChanged,
+    );
+  }
+}
+
+class _ExpirationWarningTile extends StatelessWidget {
+  final int value;
+  final ValueChanged<int> onChanged;
+
+  const _ExpirationWarningTile({
+    required this.value,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    const options = [7, 14, 30, 60, 90];
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      leading: const _SettingsIcon(icon: Icons.timer_outlined),
+      title: Text(
+        'Expiration warning period',
+        style: TextStyle(
+          color: appTextColor(context),
+          fontWeight: FontWeight.w900,
+        ),
+      ),
+      subtitle: Text(
+        '$value days before expiration',
+        style: TextStyle(
+          color: appMutedTextColor(context),
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+      trailing: DropdownButton<int>(
+        value: options.contains(value) ? value : 30,
+        underline: const SizedBox.shrink(),
+        items: options
+            .map(
+              (days) => DropdownMenuItem(
+                value: days,
+                child: Text('$days days'),
+              ),
+            )
+            .toList(),
+        onChanged: (days) {
+          if (days != null) onChanged(days);
+        },
+      ),
     );
   }
 }

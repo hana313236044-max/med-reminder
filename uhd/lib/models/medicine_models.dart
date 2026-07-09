@@ -10,6 +10,9 @@ class Medicine {
   String form;
   String ageGroup;
   String? notes;
+  bool archived;
+  String status;
+  String? iconKey;
 
   Medicine({
     required this.id,
@@ -18,6 +21,9 @@ class Medicine {
     required this.form,
     required this.ageGroup,
     this.notes,
+    this.archived = false,
+    this.status = 'active',
+    this.iconKey,
   });
 
   factory Medicine.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
@@ -29,6 +35,9 @@ class Medicine {
       form: data['form'] as String? ?? '',
       ageGroup: data['ageGroup'] as String? ?? '',
       notes: data['notes'] as String?,
+      archived: data['archived'] as bool? ?? false,
+      status: data['status'] as String? ?? 'active',
+      iconKey: data['iconKey'] as String?,
     );
   }
 
@@ -40,9 +49,15 @@ class Medicine {
       'form': form,
       'ageGroup': ageGroup,
       'notes': notes,
+      'archived': archived,
+      'status': status,
+      'iconKey': iconKey,
       'updatedAt': FieldValue.serverTimestamp(),
     };
   }
+
+  bool get isArchived =>
+      archived || status.toLowerCase() == 'archived' || status.toLowerCase() == 'inactive';
 }
 
 class MedicationReminder {
