@@ -1,15 +1,18 @@
 // This screen schedules medicine reminders.
 import 'package:flutter/material.dart';
 import 'package:uhd/widgets/app_widgets.dart';
+import 'package:uhd/models/medicine_inventory_model.dart';
 import 'package:uhd/models/medicine_models.dart';
 
 class AddReminderPage extends StatefulWidget {
   final List<Medicine> medicines;
+  final List<MedicineInventory> inventories;
   final Future<void> Function(List<MedicationReminder>) onSaveReminders;
 
   const AddReminderPage({
     super.key,
     required this.medicines,
+    required this.inventories,
     required this.onSaveReminders,
   });
 
@@ -22,7 +25,7 @@ class _AddReminderPageState extends State<AddReminderPage> {
   final _intervalController = TextEditingController(text: '1');
   final _durationDaysController = TextEditingController(text: '1');
 
-  Medicine? _selectedMedicine;
+  _ReminderInventoryOption? _selectedOption;
   DateTime _selectedDate = DateTime.now();
   TimeOfDay _selectedTime = TimeOfDay.now();
   bool _isRepeating = false;
@@ -35,14 +38,56 @@ class _AddReminderPageState extends State<AddReminderPage> {
 
   final List<String> _repeatUnits = const ['hours', 'days', 'weeks'];
 
+  List<_ReminderInventoryOption> get _inventoryOptions {
+    final medicinesById = {
+      for (final medicine in widget.medicines) medicine.id.toString(): medicine,
+    };
+    final options = <_ReminderInventoryOption>[];
+    for (final inventory in widget.inventories) {
+      if (!inventory.trackingEnabled) continue;
+      final medicineId = int.tryParse(inventory.medicineId);
+      if (medicineId == null) continue;
+      final medicine = medicinesById[inventory.medicineId] ??
+          Medicine(
+            id: medicineId,
+            name: 'Medicine ${inventory.medicineId}',
+            category: 'Inventory',
+            form: inventoryQuantityUnitLabel(
+              inventory.quantityUnitKey,
+              customQuantityUnit: inventory.customQuantityUnit,
+            ),
+            ageGroup: 'All ages',
+          );
+      options.add(
+        _ReminderInventoryOption(medicine: medicine, inventory: inventory),
+      );
+    }
+    options.sort(
+      (a, b) => a.medicine.name.toLowerCase().compareTo(
+        b.medicine.name.toLowerCase(),
+      ),
+    );
+    return options;
+  }
+
   String get _quantityUnit {
-    final form = _selectedMedicine?.form.toLowerCase() ?? '';
-    if (form.contains('drop')) return 'drops';
-    if (form.contains('pill')) return 'pills';
-    if (form.contains('syrup')) return 'spoons';
-    if (form.contains('injection')) return 'doses';
-    if (form.contains('inhaler') || form.contains('spray')) return 'puffs';
-    return 'units';
+    return _quantityUnitFor(_quantity);
+  }
+
+  String _quantityUnitFor(int quantity) {
+    final inventory = _selectedOption?.inventory;
+    if (inventory == null) return 'units';
+    return inventoryQuantityUnitLabel(
+      inventory.quantityUnitKey,
+      customQuantityUnit: inventory.customQuantityUnit,
+      plural: quantity != 1,
+    );
+  }
+
+  int _initialQuantityFor(MedicineInventory inventory) {
+    final defaultDose = inventory.defaultDoseQuantity;
+    if (defaultDose == null || defaultDose <= 0) return 1;
+    return defaultDose.round().clamp(1, 10).toInt();
   }
 
   Future<void> _pickDate() async {
@@ -73,7 +118,9 @@ class _AddReminderPageState extends State<AddReminderPage> {
     final interval = int.tryParse(_intervalController.text.trim());
     final durationDays = int.tryParse(_durationDaysController.text.trim());
     setState(() {
-      _medicineError = _selectedMedicine == null ? 'Choose a medicine' : null;
+      _medicineError = _selectedOption == null
+          ? 'Choose a medicine from inventory'
+          : null;
       _intervalError = _isRepeating && (interval == null || interval <= 0)
           ? 'Enter a number greater than 0'
           : null;
@@ -102,7 +149,7 @@ class _AddReminderPageState extends State<AddReminderPage> {
         ? 'Every ${_intervalController.text.trim()} $_repeatUnit'
         : 'One time';
 
-    final medicine = _selectedMedicine!;
+    final medicine = _selectedOption!.medicine;
     setState(() => _isSaving = true);
     try {
       await widget.onSaveReminders(
@@ -192,6 +239,7 @@ class _AddReminderPageState extends State<AddReminderPage> {
 
   @override
   Widget build(BuildContext context) {
+    final inventoryOptions = _inventoryOptions;
     return Scaffold(
       backgroundColor: appScaffoldColor(context),
       appBar: AppBar(
@@ -218,28 +266,28 @@ class _AddReminderPageState extends State<AddReminderPage> {
             ),
             const SizedBox(height: 4),
             Text(
-              'Pick a saved medicine, dose, and exact schedule.',
+              'Pick a medicine from inventory, dose, and exact schedule.',
               style: TextStyle(
                 color: appMutedTextColor(context),
                 fontWeight: FontWeight.w700,
               ),
             ),
             const SizedBox(height: 20),
-            if (widget.medicines.isEmpty)
+            if (inventoryOptions.isEmpty)
               _NoMedicinesNotice()
             else
-              _MedicineAutocomplete(
-                medicines: widget.medicines,
-                selected: _selectedMedicine,
+              _InventoryMedicineAutocomplete(
+                options: inventoryOptions,
+                selected: _selectedOption,
                 errorText: _medicineError,
                 onCleared: () {
-                  setState(() => _selectedMedicine = null);
+                  setState(() => _selectedOption = null);
                 },
-                onSelected: (medicine) {
+                onSelected: (option) {
                   setState(() {
-                    _selectedMedicine = medicine;
+                    _selectedOption = option;
                     _medicineError = null;
-                    _quantity = 1;
+                    _quantity = _initialQuantityFor(option.inventory);
                   });
                 },
               ),
@@ -281,7 +329,7 @@ class _AddReminderPageState extends State<AddReminderPage> {
                         .map(
                           (count) => DropdownMenuItem(
                             value: count,
-                            child: Text('$count $_quantityUnit'),
+                            child: Text('$count ${_quantityUnitFor(count)}'),
                           ),
                         )
                         .toList(),
@@ -405,7 +453,7 @@ class _AddReminderPageState extends State<AddReminderPage> {
             AuthPrimaryButton(
               label: _isSaving ? 'Saving...' : 'Save Reminder',
               icon: Icons.check_circle_outline,
-              onPressed: widget.medicines.isEmpty ? () {} : _save,
+              onPressed: inventoryOptions.isEmpty ? () {} : _save,
             ),
           ],
         ),
@@ -414,15 +462,36 @@ class _AddReminderPageState extends State<AddReminderPage> {
   }
 }
 
-class _MedicineAutocomplete extends StatelessWidget {
-  final List<Medicine> medicines;
-  final Medicine? selected;
+class _ReminderInventoryOption {
+  final Medicine medicine;
+  final MedicineInventory inventory;
+
+  const _ReminderInventoryOption({
+    required this.medicine,
+    required this.inventory,
+  });
+
+  String get unitLabel {
+    return inventoryQuantityUnitLabel(
+      inventory.quantityUnitKey,
+      customQuantityUnit: inventory.customQuantityUnit,
+    );
+  }
+
+  String get stockLabel {
+    return '${formatInventoryQuantity(inventory.currentQuantity)} $unitLabel';
+  }
+}
+
+class _InventoryMedicineAutocomplete extends StatelessWidget {
+  final List<_ReminderInventoryOption> options;
+  final _ReminderInventoryOption? selected;
   final String? errorText;
-  final ValueChanged<Medicine> onSelected;
+  final ValueChanged<_ReminderInventoryOption> onSelected;
   final VoidCallback onCleared;
 
-  const _MedicineAutocomplete({
-    required this.medicines,
+  const _InventoryMedicineAutocomplete({
+    required this.options,
     required this.selected,
     required this.errorText,
     required this.onSelected,
@@ -431,34 +500,35 @@ class _MedicineAutocomplete extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Autocomplete<Medicine>(
-      displayStringForOption: (medicine) => medicine.name,
+    return Autocomplete<_ReminderInventoryOption>(
+      displayStringForOption: (option) => option.medicine.name,
       optionsBuilder: (value) {
         final query = value.text.toLowerCase().trim();
-        if (query.isEmpty) return medicines;
-        return medicines.where(
-          (medicine) =>
-              medicine.name.toLowerCase().contains(query) ||
-              medicine.category.toLowerCase().contains(query) ||
-              medicine.form.toLowerCase().contains(query),
+        if (query.isEmpty) return options;
+        return options.where(
+          (option) =>
+              option.medicine.name.toLowerCase().contains(query) ||
+              option.medicine.category.toLowerCase().contains(query) ||
+              option.medicine.form.toLowerCase().contains(query) ||
+              option.unitLabel.toLowerCase().contains(query),
         );
       },
       onSelected: onSelected,
       fieldViewBuilder: (context, controller, focusNode, onSubmit) {
-        if (selected != null && controller.text != selected!.name) {
-          controller.text = selected!.name;
+        if (selected != null && controller.text != selected!.medicine.name) {
+          controller.text = selected!.medicine.name;
         }
         return TextField(
           controller: controller,
           focusNode: focusNode,
           onChanged: (value) {
-            if (selected != null && value != selected!.name) {
+            if (selected != null && value != selected!.medicine.name) {
               onCleared();
             }
           },
           decoration: authInputDecoration(
             context: context,
-            hintText: 'Search and choose medicine',
+            hintText: 'Search and choose inventory medicine',
             icon: Icons.search,
             errorText: errorText,
           ),
@@ -476,7 +546,8 @@ class _MedicineAutocomplete extends StatelessWidget {
                 padding: const EdgeInsets.all(8),
                 itemCount: options.length,
                 itemBuilder: (context, index) {
-                  final medicine = options.elementAt(index);
+                  final option = options.elementAt(index);
+                  final medicine = option.medicine;
                   return ListTile(
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -486,8 +557,10 @@ class _MedicineAutocomplete extends StatelessWidget {
                       color: authPrimary,
                     ),
                     title: Text(medicine.name),
-                    subtitle: Text('${medicine.category} - ${medicine.form}'),
-                    onTap: () => onSelectedOption(medicine),
+                    subtitle: Text(
+                      '${medicine.category} - ${medicine.form} - Stock: ${option.stockLabel}',
+                    ),
+                    onTap: () => onSelectedOption(option),
                   );
                 },
               ),
@@ -616,7 +689,7 @@ class _NoMedicinesNotice extends StatelessWidget {
         border: Border.all(color: const Color(0xFFFFD7A3)),
       ),
       child: const Text(
-        'Add a medicine first from My Medicines, then create reminders.',
+        'Track a medicine first from Medicine Inventory, then create reminders.',
         style: TextStyle(color: Color(0xFF7A4B00), fontWeight: FontWeight.w700),
       ),
     );

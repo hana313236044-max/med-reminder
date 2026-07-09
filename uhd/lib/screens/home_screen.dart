@@ -16,6 +16,7 @@ import 'package:uhd/screens/statistics_page.dart';
 import 'package:uhd/services/inventory_service.dart';
 import 'package:uhd/services/statistics_service.dart';
 import 'package:uhd/widgets/app_widgets.dart';
+import 'package:uhd/models/medicine_inventory_model.dart';
 import 'package:uhd/models/medicine_models.dart';
 import 'package:uhd/models/statistics_model.dart';
 
@@ -50,10 +51,12 @@ class _HomePageState extends State<HomePage> {
   final InventoryService _inventoryService = InventoryService();
   final List<MedicationReminder> _reminders = [];
   final List<Medicine> _medicines = [];
+  final List<MedicineInventory> _inventories = [];
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>?
       _medicinesSubscription;
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>?
       _remindersSubscription;
+  StreamSubscription<List<MedicineInventory>>? _inventorySubscription;
   ReminderFilter _filter = ReminderFilter.all;
   DateTime _selectedDate = DateTime.now();
   int _selectedTab = 0;
@@ -130,6 +133,22 @@ class _HomePageState extends State<HomePage> {
             _isLoadingData = false;
           });
         });
+
+    _inventorySubscription = _inventoryService.watchInventories().listen(
+      (records) {
+        if (!mounted) return;
+        setState(() {
+          _inventories
+            ..clear()
+            ..addAll(records);
+          _isLoadingData = false;
+        });
+      },
+      onError: (_) {
+        if (!mounted) return;
+        setState(() => _isLoadingData = false);
+      },
+    );
   }
 
   List<MedicationReminder> get _filteredReminders {
@@ -505,7 +524,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _openMedicines() {
-    setState(() => _selectedTab = 1);
+    setState(() => _selectedTab = 4);
   }
 
   void _selectTab(int index) {
@@ -518,6 +537,7 @@ class _HomePageState extends State<HomePage> {
       MaterialPageRoute(
         builder: (_) => AddReminderPage(
           medicines: _medicines,
+          inventories: _inventories,
           onSaveReminders: _saveReminders,
         ),
       ),
@@ -540,6 +560,7 @@ class _HomePageState extends State<HomePage> {
   void dispose() {
     _medicinesSubscription?.cancel();
     _remindersSubscription?.cancel();
+    _inventorySubscription?.cancel();
     super.dispose();
   }
 
@@ -657,7 +678,7 @@ class _HomePageState extends State<HomePage> {
             padding: const EdgeInsets.fromLTRB(18, 6, 18, 0),
             child: _HomeHeader(
               userName: widget.userName,
-              medicineCount: _medicines.length,
+              medicineCount: _trackedReminderInventories.length,
               reminderCount: _countFor(ReminderFilter.all),
               onOpenMedicines: _openMedicines,
               onAddReminder: _openAddReminder,
@@ -698,8 +719,8 @@ class _HomePageState extends State<HomePage> {
             child: Padding(
               padding: const EdgeInsets.fromLTRB(18, 0, 18, 90),
               child: _EmptyReminderState(
-                hasMedicines: _medicines.isNotEmpty,
-                onOpenMedicines: _openMedicines,
+                hasInventory: _trackedReminderInventories.isNotEmpty,
+                onOpenInventory: () => setState(() => _selectedTab = 4),
                 onAddReminder: _openAddReminder,
                 title: showSkippedEmptyState
                     ? 'No medicine has been skipped'
@@ -793,6 +814,16 @@ class _HomePageState extends State<HomePage> {
       }
     }
     setState(() => _selectedTab = 1);
+  }
+
+  List<MedicineInventory> get _trackedReminderInventories {
+    return _inventories
+        .where(
+          (inventory) =>
+              inventory.trackingEnabled &&
+              int.tryParse(inventory.medicineId) != null,
+        )
+        .toList();
   }
 
   String _intakeLogId(MedicationReminder reminder, DateTime scheduledAt) {

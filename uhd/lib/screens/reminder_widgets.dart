@@ -244,15 +244,15 @@ class _Tag extends StatelessWidget {
 }
 
 class _EmptyReminderState extends StatelessWidget {
-  final bool hasMedicines;
-  final VoidCallback onOpenMedicines;
+  final bool hasInventory;
+  final VoidCallback onOpenInventory;
   final VoidCallback onAddReminder;
   final String? title;
   final String? message;
 
   const _EmptyReminderState({
-    required this.hasMedicines,
-    required this.onOpenMedicines,
+    required this.hasInventory,
+    required this.onOpenInventory,
     required this.onAddReminder,
     this.title,
     this.message,
@@ -289,17 +289,17 @@ class _EmptyReminderState extends StatelessWidget {
             const SizedBox(height: 6),
             Text(
               message ??
-                  (hasMedicines
-                      ? 'Create a reminder from one of your saved medicines.'
-                      : 'Add medicines first, then create reminders from them.'),
+                  (hasInventory
+                      ? 'Create a reminder from one of your inventory medicines.'
+                      : 'Track medicines in inventory first, then create reminders from them.'),
               textAlign: TextAlign.center,
               style: TextStyle(color: appMutedTextColor(context)),
             ),
             const SizedBox(height: 18),
             AuthPrimaryButton(
-              label: hasMedicines ? 'Add Reminder' : 'Open My Medicines',
-              icon: hasMedicines ? Icons.add : Icons.inventory_2_outlined,
-              onPressed: hasMedicines ? onAddReminder : onOpenMedicines,
+              label: hasInventory ? 'Add Reminder' : 'Open Inventory',
+              icon: hasInventory ? Icons.add : Icons.inventory_2_outlined,
+              onPressed: hasInventory ? onAddReminder : onOpenInventory,
             ),
           ],
         ),
