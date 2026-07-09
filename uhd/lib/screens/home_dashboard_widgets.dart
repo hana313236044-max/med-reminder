@@ -104,6 +104,11 @@ class _AppBottomNavigation extends StatelessWidget {
         'Library',
       ),
       _BottomNavData(
+        Icons.local_pharmacy_outlined,
+        Icons.local_pharmacy,
+        'Pharmacies',
+      ),
+      _BottomNavData(
         Icons.inventory_2_outlined,
         Icons.inventory_2,
         'Inventory',
@@ -188,6 +193,11 @@ class _AppNavigationRail extends StatelessWidget {
         Icons.local_library_outlined,
         Icons.local_library,
         'Library',
+      ),
+      _BottomNavData(
+        Icons.local_pharmacy_outlined,
+        Icons.local_pharmacy,
+        'Pharmacies',
       ),
       _BottomNavData(
         Icons.inventory_2_outlined,

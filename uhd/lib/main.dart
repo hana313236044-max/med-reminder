@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:uhd/screens/auth_gate.dart';
+import 'package:uhd/screens/cart_page.dart';
+import 'package:uhd/screens/checkout_page.dart';
 import 'package:uhd/screens/medicine_library_details_page.dart';
+import 'package:uhd/screens/pharmacy_details_page.dart';
 import 'package:uhd/widgets/app_widgets.dart';
 import 'package:uhd/screens/splash_screen.dart';
 import 'package:uhd/firebase_options.dart';
@@ -64,6 +67,24 @@ class Midterm extends StatelessWidget {
                 builder: (_) => const AuthGate(initialHomeTab: 2),
               );
             }
+            if (routeName == '/pharmacies') {
+              return MaterialPageRoute(
+                settings: settings,
+                builder: (_) => const AuthGate(initialHomeTab: 3),
+              );
+            }
+            if (routeName == '/cart') {
+              return MaterialPageRoute(
+                settings: settings,
+                builder: (_) => const CartPage(),
+              );
+            }
+            if (routeName == '/checkout') {
+              return MaterialPageRoute(
+                settings: settings,
+                builder: (_) => const CheckoutPage(),
+              );
+            }
             if (routeName.startsWith('/medicine-library/')) {
               final medicineId = Uri.decodeComponent(
                 routeName.substring('/medicine-library/'.length),
@@ -77,6 +98,15 @@ class Midterm extends StatelessWidget {
                       ? args.onSaveMedicine
                       : null,
                 ),
+              );
+            }
+            if (routeName.startsWith('/pharmacies/')) {
+              final pharmacyId = Uri.decodeComponent(
+                routeName.substring('/pharmacies/'.length),
+              );
+              return MaterialPageRoute(
+                settings: settings,
+                builder: (_) => PharmacyDetailsPage(pharmacyId: pharmacyId),
               );
             }
             return null;

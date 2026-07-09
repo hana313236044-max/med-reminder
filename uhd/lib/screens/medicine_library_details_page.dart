@@ -5,6 +5,7 @@ import 'package:uhd/models/medicine_models.dart';
 import 'package:uhd/screens/add_medicine_screen.dart';
 import 'package:uhd/services/medicine_library_repository.dart';
 import 'package:uhd/widgets/app_widgets.dart';
+import 'package:uhd/widgets/available_pharmacies_section.dart';
 
 class MedicineLibraryDetailsRouteArguments {
   final Future<void> Function(Medicine) onSaveMedicine;
@@ -212,6 +213,8 @@ class _DetailsContent extends StatelessWidget {
                       const SizedBox(height: 14),
                       _ActionsSection(onAdd: onAdd, onBack: onBack),
                     ],
+                    const SizedBox(height: 14),
+                    AvailablePharmaciesSection(medicineId: medicine.id),
                     const SizedBox(height: 14),
                     if (twoColumns)
                       Row(

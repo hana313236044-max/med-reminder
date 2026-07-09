@@ -10,6 +10,7 @@ import 'package:uhd/screens/medicine_inventory_page.dart';
 import 'package:uhd/screens/medicine_library_details_page.dart';
 import 'package:uhd/screens/medicine_library_page.dart';
 import 'package:uhd/screens/medical_profile_page.dart';
+import 'package:uhd/screens/pharmacies_page.dart';
 import 'package:uhd/screens/settings_screen.dart';
 import 'package:uhd/screens/statistics_page.dart';
 import 'package:uhd/services/inventory_service.dart';
@@ -90,7 +91,7 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
-    _selectedTab = widget.initialTab >= 0 && widget.initialTab <= 6
+    _selectedTab = widget.initialTab >= 0 && widget.initialTab <= 7
         ? widget.initialTab
         : 0;
     _listenToUserData();
@@ -596,12 +597,14 @@ class _HomePageState extends State<HomePage> {
       case 2:
         return 'Medicine Library';
       case 3:
-        return 'Medicine Inventory';
+        return 'Pharmacies';
       case 4:
-        return 'Statistics / Insights';
+        return 'Medicine Inventory';
       case 5:
-        return 'Settings';
+        return 'Statistics / Insights';
       case 6:
+        return 'Settings';
+      case 7:
         return 'Profile';
       case 0:
       default:
@@ -621,12 +624,14 @@ class _HomePageState extends State<HomePage> {
       case 2:
         return MedicineLibraryPage(onMedicineSelected: _openLibraryMedicine);
       case 3:
-        return MedicineInventoryPage(onMedicineSelected: _openMedicineFromStats);
+        return PharmaciesPage(onPharmacySelected: _openPharmacy);
       case 4:
-        return StatisticsPage(onMedicineSelected: _openMedicineFromStats);
+        return MedicineInventoryPage(onMedicineSelected: _openMedicineFromStats);
       case 5:
-        return const AppSettings(showScaffold: false);
+        return StatisticsPage(onMedicineSelected: _openMedicineFromStats);
       case 6:
+        return const AppSettings(showScaffold: false);
+      case 7:
         return _ProfileTab(
           userName: widget.userName,
           email: widget.email,
@@ -770,6 +775,13 @@ class _HomePageState extends State<HomePage> {
       arguments: MedicineLibraryDetailsRouteArguments(
         onSaveMedicine: _saveMedicine,
       ),
+    );
+  }
+
+  void _openPharmacy(String pharmacyId) {
+    Navigator.pushNamed(
+      context,
+      '/pharmacies/${Uri.encodeComponent(pharmacyId)}',
     );
   }
 
